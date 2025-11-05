@@ -1,0 +1,25 @@
+kind: pipeline
+type: docker
+name: upload-to-har
+
+steps:
+- name: build
+  image: golang:1.22.7
+  commands:
+  - go build -o myapp .
+  - tar -czf myapp-${DRONE_BUILD_NUMBER}.tar.gz myapp
+
+- name: upload-artifact
+  image: harness/droneHarPlugin
+  settings:
+    registry: my-registry
+    source: myapp-${DRONE_BUILD_NUMBER}.tar.gz
+    name: myapp
+    version: ${DRONE_BUILD_NUMBER}
+    description: "Build artifact for commit ${DRONE_COMMIT_SHA}"
+    token:
+      from_secret: harness_token
+    account:
+      from_secret: harness_account
+    org: my-org
+    project: my-project

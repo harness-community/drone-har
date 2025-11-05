@@ -1,0 +1,140 @@
+kind: pipeline
+type: docker
+name: advanced-artifact-management
+
+steps:
+- name: build
+  image: node:18
+  commands:
+  - npm install
+  - npm run build
+  - npm run test
+  - tar -czf dist-${DRONE_BUILD_NUMBER}.tar.gz dist/
+
+# Upload to staging registry
+- name: upload-to-staging
+  image: harness/droneHarPlugin
+  settings:
+    command: push
+    registry: staging-registry
+    source: dist-${DRONE_BUILD_NUMBER}.tar.gz
+    name: my-webapp
+    version: ${DRONE_BUILD_NUMBER}-staging
+    description: "Staging build for branch ${DRONE_BRANCH}"
+    filename: webapp-staging-${DRONE_BUILD_NUMBER}.tar.gz
+    token:
+      from_secret: harness_token
+    account:
+      from_secret: harness_account
+    org: my-org
+    project: my-project
+    pkg_url: https://app.harness.io
+    enable_proxy: true
+  when:
+    branch:
+    - develop
+    - feature/*
+
+# Verify staging upload
+- name: verify-staging-upload
+  image: harness/droneHarPlugin
+  settings:
+    command: get
+    registry: staging-registry
+    name: my-webapp
+    version: ${DRONE_BUILD_NUMBER}-staging
+    token:
+      from_secret: harness_token
+    account:
+      from_secret: harness_account
+    org: my-org
+    project: my-project
+    pkg_url: https://app.harness.io
+  when:
+    branch:
+    - develop
+    - feature/*
+
+# Upload to production registry (on tags)
+- name: upload-to-production
+  image: harness/droneHarPlugin
+  settings:
+    command: push
+    registry: production-registry
+    source: dist-${DRONE_BUILD_NUMBER}.tar.gz
+    name: my-webapp
+    version: ${DRONE_TAG}
+    description: "Production release ${DRONE_TAG}"
+    filename: webapp-${DRONE_TAG}.tar.gz
+    token:
+      from_secret: harness_prod_token
+    account:
+      from_secret: harness_prod_account
+    org: production-org
+    project: webapp-project
+    pkg_url: https://app.harness.io
+  when:
+    event:
+    - tag
+
+# Cleanup old staging artifacts (keep last 5)
+- name: cleanup-old-staging
+  image: harness/droneHarPlugin
+  settings:
+    command: delete
+    registry: staging-registry
+    name: my-webapp
+    version: ${DRONE_BUILD_NUMBER - 5}-staging
+    token:
+      from_secret: harness_token
+    account:
+      from_secret: harness_account
+    org: my-org
+    project: my-project
+    pkg_url: https://app.harness.io
+  when:
+    branch:
+    - develop
+  failure: ignore  # Don't fail if artifact doesn't exist
+
+---
+# Deployment pipeline that pulls artifacts
+kind: pipeline
+type: docker
+name: deploy-from-registry
+
+depends_on:
+- advanced-artifact-management
+
+steps:
+# Download production artifact for deployment
+- name: download-production-artifact
+  image: harness/droneHarPlugin
+  settings:
+    command: pull
+    registry: production-registry
+    package_path: my-webapp/${DRONE_TAG}
+    destination: ./deployment/
+    token:
+      from_secret: harness_prod_token
+    account:
+      from_secret: harness_prod_account
+    org: production-org
+    project: webapp-project
+    pkg_url: https://app.harness.io
+  when:
+    event:
+    - tag
+
+- name: deploy-to-k8s
+  image: kubectl:latest
+  commands:
+  - cd deployment
+  - tar -xzf webapp-${DRONE_TAG}.tar.gz
+  - kubectl apply -f k8s-manifests/
+  environment:
+    KUBECONFIG:
+      from_secret: k8s_config
+  when:
+    event:
+    - tag
