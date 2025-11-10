@@ -233,6 +233,12 @@ func execGetCommand(args Args) error {
 	if args.Name == "" {
 		return fmt.Errorf("artifact name must be set")
 	}
+	if args.Token == "" {
+		return fmt.Errorf("authentication token must be set")
+	}
+	if args.Account == "" {
+		return fmt.Errorf("account ID must be set")
+	}
 
 	// Use 'hc ar get artifact' command with registry and name flags
 	cmd := []string{
@@ -242,13 +248,8 @@ func execGetCommand(args Args) error {
 
 	// Add required flags
 	cmd = append(cmd, "--registry", args.Registry)
-
-	if args.Token != "" {
-		cmd = append(cmd, "--token", args.Token)
-	}
-	if args.Account != "" {
-		cmd = append(cmd, "--account", args.Account)
-	}
+	cmd = append(cmd, "--token", args.Token)
+	cmd = append(cmd, "--account", args.Account)
 	if args.Org != "" {
 		cmd = append(cmd, "--org", args.Org)
 	}

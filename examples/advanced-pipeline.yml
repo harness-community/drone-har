@@ -91,7 +91,6 @@ steps:
       from_secret: harness_account
     org: my-org
     project: my-project
-    pkg_url: https://pkg.qa.harness.io
   when:
     branch:
     - develop

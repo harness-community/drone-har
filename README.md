@@ -106,7 +106,7 @@ steps:
 | `registry` | Name of the Harness Artifact Registry | `my-registry` |
 | `token` | Harness authentication token | `pat.abc123...` |
 | `account` | Harness account ID | `abc123def456` |
-| `pkg_url` | Base URL for the Packages | `https://pkg.qa.harness.io` |
+| `pkg_url` | Base URL for the Packages (push/pull only) | `https://pkg.qa.harness.io` |
 
 ### Command-Specific Required Settings
 
@@ -241,12 +241,12 @@ Downloads an artifact from the registry.
 ### Get (Info)
 Retrieves information about an artifact.
 
-**Required**: `registry`, `name`, `token`, `account`, `pkg_url`
+**Required**: `registry`, `name`, `token`, `account`
 
 ### Delete (Remove)
 Deletes an artifact from the registry.
 
-**Required**: `registry`, `name`, `token`, `account`, `pkg_url`
+**Required**: `registry`, `name`, `token`, `account`
 
 ## Requirements
 
