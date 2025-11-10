@@ -143,12 +143,10 @@ steps:
 | `description` | Description of the artifact | _(empty)_ | `Build artifact` | push |
 | `filename` | Custom filename for the uploaded artifact | _(basename of source)_ | `app-v1.0.0.zip` | push |
 | `package_type` | Type of package | `generic` | `generic` | push |
-| `target` | Target path for operations | _(empty)_ | `./target/` | pull |
 | `org` | Harness organization ID | _(empty)_ | `my-org` | All |
 | `project` | Harness project ID | _(empty)_ | `my-project` | All |
 | `api_url` | Base URL for the Harness API | _(empty)_ | `https://app.harness.io` | All |
 | `enable_proxy` | Enable proxy configuration | `false` | `true` | All |
-| `retries` | Number of operation retries | `0` | `3` | All |
 | `log_level` | Plugin log level | _(empty)_ | `debug` | All |
 
 ## Authentication
@@ -178,7 +176,6 @@ The plugin uses the following environment variables (automatically set by Drone)
 - `PLUGIN_PROJECT` - Project ID
 - `PLUGIN_API_URL` - API base URL
 - `PLUGIN_ENABLE_PROXY` - Enable proxy
-- `PLUGIN_RETRIES` - Number of retries
 - `PLUGIN_LOG_LEVEL` - Log level
 
 ### Push Command Variables

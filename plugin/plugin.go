@@ -44,7 +44,6 @@ type Args struct {
 	// Artifact upload/download parameters
 	Registry    string `envconfig:"PLUGIN_REGISTRY"`
 	Source      string `envconfig:"PLUGIN_SOURCE"`
-	Target      string `envconfig:"PLUGIN_TARGET"`
 	Name        string `envconfig:"PLUGIN_NAME"`
 	Version     string `envconfig:"PLUGIN_VERSION"`
 	Description string `envconfig:"PLUGIN_DESCRIPTION"`
@@ -55,7 +54,6 @@ type Args struct {
 	PackageType string `envconfig:"PLUGIN_PACKAGE_TYPE"`
 
 	// Pull/Download parameters
-	PackagePath string `envconfig:"PLUGIN_PACKAGE_PATH"`
 	Destination string `envconfig:"PLUGIN_DESTINATION"`
 
 	// Additional parameters
@@ -260,9 +258,6 @@ func execGetCommand(args Args) error {
 	if args.ApiURL != "" {
 		cmd = append(cmd, "--api-url", args.ApiURL)
 	}
-	if args.PkgURL != "" {
-		cmd = append(cmd, "--pkg-url", args.PkgURL)
-	}
 
 	cmd = append(cmd, "--format", "json")
 
@@ -305,9 +300,6 @@ func execDeleteCommand(args Args) error {
 	}
 	if args.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", args.ApiURL)
-	}
-	if args.PkgURL != "" {
-		cmdArgs = append(cmdArgs, "--pkg-url", args.PkgURL)
 	}
 
 	// Add format flag for consistent output
