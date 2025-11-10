@@ -133,7 +133,7 @@ func execPushCommand(args Args) error {
 		logrus.Printf("No version specified, using default: %s", version)
 	}
 
-	// Build Harness CLI command
+	// Build Harness CLI command - only registry and source as positional args
 	cmdArgs := []string{getHarnessBin(), "ar", "push", packageType, args.Registry, args.Source}
 
 	// Add required flags
@@ -174,8 +174,14 @@ func execPullCommand(args Args) error {
 	if args.Registry == "" {
 		return fmt.Errorf("registry name must be set")
 	}
-	if args.PackagePath == "" {
-		return fmt.Errorf("package path must be set")
+	if args.Name == "" {
+		return fmt.Errorf("package name must be set")
+	}
+	if args.Version == "" {
+		return fmt.Errorf("package version must be set")
+	}
+	if args.Filename == "" {
+		return fmt.Errorf("filename must be set")
 	}
 	if args.Destination == "" {
 		return fmt.Errorf("destination path must be set")
@@ -190,8 +196,11 @@ func execPullCommand(args Args) error {
 		return fmt.Errorf("package URL must be set")
 	}
 
+	// Construct package path in the format expected by harness-cli: <package_name>/<version>/<filename>
+	packagePath := fmt.Sprintf("%s/%s/%s", args.Name, args.Version, args.Filename)
+
 	// Build Harness CLI command
-	cmdArgs := []string{getHarnessBin(), "ar", "pull", "generic", args.Registry, args.PackagePath, args.Destination}
+	cmdArgs := []string{getHarnessBin(), "ar", "pull", "generic", args.Registry, packagePath, args.Destination}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--token", args.Token)
@@ -212,7 +221,8 @@ func execPullCommand(args Args) error {
 	// Add format flag for consistent output
 	cmdArgs = append(cmdArgs, "--format", "json")
 
-	return executeCommand(cmdArgs, fmt.Sprintf("pull artifact from '%s' to '%s'", args.PackagePath, args.Destination))
+	return executeCommand(cmdArgs, fmt.Sprintf("pull artifact '%s' (version '%s', file '%s') from registry '%s' to '%s'", 
+		args.Name, args.Version, args.Filename, args.Registry, args.Destination))
 }
 
 // execGetCommand handles artifact info retrieval
@@ -226,15 +236,15 @@ func execGetCommand(args Args) error {
 		return fmt.Errorf("artifact name must be set")
 	}
 
-	// Use 'hc ar get artifact' for artifact details
+	// Use 'hc ar get artifact' command with registry and name flags
 	cmd := []string{
 		getHarnessBin(),
-		"ar", "get", "artifact", args.Registry, args.Name,
+		"ar", "get", "artifact", args.Name,
 	}
 
-	if args.Version != "" {
-		cmd = append(cmd, "--version", args.Version)
-	}
+	// Add required flags
+	cmd = append(cmd, "--registry", args.Registry)
+
 	if args.Token != "" {
 		cmd = append(cmd, "--token", args.Token)
 	}
@@ -249,6 +259,9 @@ func execGetCommand(args Args) error {
 	}
 	if args.ApiURL != "" {
 		cmd = append(cmd, "--api-url", args.ApiURL)
+	}
+	if args.PkgURL != "" {
+		cmd = append(cmd, "--pkg-url", args.PkgURL)
 	}
 
 	cmd = append(cmd, "--format", "json")
@@ -275,10 +288,11 @@ func execDeleteCommand(args Args) error {
 		return fmt.Errorf("account ID must be set")
 	}
 
-	// Build Harness CLI command
-	cmdArgs := []string{getHarnessBin(), "ar", "delete", args.Registry, args.Name}
+	// Build Harness CLI command - use 'hc ar delete artifact' with name as argument and registry as flag
+	cmdArgs := []string{getHarnessBin(), "ar", "delete", "artifact", args.Name}
 
 	// Add required flags
+	cmdArgs = append(cmdArgs, "--registry", args.Registry)
 	cmdArgs = append(cmdArgs, "--token", args.Token)
 	cmdArgs = append(cmdArgs, "--account", args.Account)
 
@@ -292,6 +306,9 @@ func execDeleteCommand(args Args) error {
 	if args.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", args.ApiURL)
 	}
+	if args.PkgURL != "" {
+		cmdArgs = append(cmdArgs, "--pkg-url", args.PkgURL)
+	}
 
 	// Add format flag for consistent output
 	cmdArgs = append(cmdArgs, "--format", "json")
@@ -304,8 +321,8 @@ func executeCommand(cmdArgs []string, operation string) error {
 	cmdStr := strings.Join(cmdArgs[:], " ")
 	logrus.Printf("Executing command: %s", cmdStr)
 
-	shell, shArg := getShell()
-	cmd := exec.Command(shell, shArg, cmdStr)
+	// Execute command directly without shell to avoid argument parsing issues
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	cmd.Env = os.Environ()
 
 	cmd.Stdout = os.Stdout

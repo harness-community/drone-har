@@ -1,8 +1,0 @@
-This is a test artifact file for droneHarPlugin.
-Created on: 2025-10-31
-Purpose: Testing artifact upload to Harness Artifact Registry
-
-Content:
-- Sample application binary
-- Version: 1.0.0-test
-- Build: test-build-123

@@ -35,7 +35,7 @@ steps:
       from_secret: harness_account
     org: my-org
     project: my-project
-    pkg_url: https://app.harness.io
+    pkg_url: https://pkg.qa.harness.io
 ```
 
 ### Multi-Command Pipeline Example
@@ -63,7 +63,7 @@ steps:
       from_secret: harness_account
     org: my-org
     project: my-project
-    pkg_url: https://app.harness.io
+    pkg_url: https://pkg.qa.harness.io
     enable_proxy: true
 
 # Get artifact info
@@ -78,7 +78,7 @@ steps:
       from_secret: harness_token
     account:
       from_secret: harness_account
-    pkg_url: https://app.harness.io
+    pkg_url: https://pkg.qa.harness.io
 
 # Download artifact (in a different pipeline/stage)
 - name: download-artifact
@@ -86,13 +86,15 @@ steps:
   settings:
     command: pull
     registry: my-registry
-    package_path: my-service/1.0.0
+    name: my-service
+    version: 1.0.0
+    filename: my-service.tar.gz
     destination: ./downloaded/
     token:
       from_secret: harness_token
     account:
       from_secret: harness_account
-    pkg_url: https://app.harness.io
+    pkg_url: https://pkg.qa.harness.io
 ```
 
 ## Settings
@@ -104,7 +106,7 @@ steps:
 | `registry` | Name of the Harness Artifact Registry | `my-registry` |
 | `token` | Harness authentication token | `pat.abc123...` |
 | `account` | Harness account ID | `abc123def456` |
-| `pkg_url` | Base URL for the Packages | `https://app.harness.io` |
+| `pkg_url` | Base URL for the Packages | `https://pkg.qa.harness.io` |
 
 ### Command-Specific Required Settings
 
@@ -117,7 +119,9 @@ steps:
 #### Pull Command
 | Setting | Description | Example |
 |---------|-------------|---------|
-| `package_path` | Path to the package in registry (name/version) | `my-app/1.0.0` |
+| `name` | Name of the artifact to download | `my-application` |
+| `version` | Version of the artifact to download | `1.0.0` |
+| `filename` | Filename of the artifact to download | `app.zip` |
 | `destination` | Local destination path for download | `./downloads/` |
 
 #### Get Command
@@ -186,9 +190,10 @@ The plugin uses the following environment variables (automatically set by Drone)
 - `PLUGIN_PACKAGE_TYPE` - Package type
 
 ### Pull Command Variables
-- `PLUGIN_PACKAGE_PATH` - Package path (name/version)
+- `PLUGIN_NAME` - Artifact name
+- `PLUGIN_VERSION` - Artifact version
+- `PLUGIN_FILENAME` - Artifact filename
 - `PLUGIN_DESTINATION` - Destination path
-- `PLUGIN_TARGET` - Target path
 
 ### Get/Delete Command Variables
 - `PLUGIN_NAME` - Artifact name
@@ -234,7 +239,7 @@ Uploads an artifact file to the registry.
 ### Pull (Download)
 Downloads an artifact from the registry.
 
-**Required**: `registry`, `package_path`, `destination`, `token`, `account`, `pkg_url`
+**Required**: `registry`, `name`, `version`, `filename`, `destination`, `token`, `account`, `pkg_url`
 
 ### Get (Info)
 Retrieves information about an artifact.

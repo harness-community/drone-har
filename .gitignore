@@ -38,3 +38,17 @@ Thumbs.db
 # Build artifacts
 droneHarPlugin
 dist/
+
+# Test files and temporary artifacts
+test-sample.txt
+registry_migration_*.txt
+test-all-operations.sh
+INTEGRATION_TEST_RESULTS.md
+*.test.txt
+*.log
+
+# Temporary directories
+tmp/
+temp/
+downloads/
+deployment/

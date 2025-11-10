@@ -18,7 +18,7 @@ func TestExec_MissingRegistry(t *testing.T) {
 		Name:    "test-artifact",
 		Token:   "test-token",
 		Account: "test-account",
-		PkgURL:  "https://app.harness.io",
+		PkgURL:  "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
@@ -37,7 +37,7 @@ func TestExec_MissingSource(t *testing.T) {
 		Name:     "test-artifact",
 		Token:    "test-token",
 		Account:  "test-account",
-		PkgURL:   "https://app.harness.io",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
@@ -56,7 +56,7 @@ func TestExec_MissingName(t *testing.T) {
 		Source:   "test.txt",
 		Token:    "test-token",
 		Account:  "test-account",
-		PkgURL:   "https://app.harness.io",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
@@ -75,7 +75,7 @@ func TestExec_MissingToken(t *testing.T) {
 		Source:   "test.txt",
 		Name:     "test-artifact",
 		Account:  "test-account",
-		PkgURL:   "https://app.harness.io",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
@@ -94,7 +94,7 @@ func TestExec_MissingAccount(t *testing.T) {
 		Source:   "test.txt",
 		Name:     "test-artifact",
 		Token:    "test-token",
-		PkgURL:   "https://app.harness.io",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
@@ -218,7 +218,7 @@ func TestExec_DefaultCommand(t *testing.T) {
 		Name:     "test-artifact",
 		Token:    "test-token",
 		Account:  "test-account",
-		PkgURL:   "https://app.harness.io",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	// This will fail at CLI execution but should pass validation
@@ -229,33 +229,79 @@ func TestExec_DefaultCommand(t *testing.T) {
 	}
 }
 
-func TestExec_PullCommand_MissingPackagePath(t *testing.T) {
+func TestExec_PullCommand_MissingPackageName(t *testing.T) {
 	args := Args{
 		Command:     "pull",
 		Registry:    "test-registry",
+		Version:     "1.0.0",
+		Filename:    "test.txt",
 		Destination: "/tmp/test",
 		Token:       "test-token",
 		Account:     "test-account",
-		PkgURL:      "https://app.harness.io",
+		PkgURL:      "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
 	if err == nil {
-		t.Error("Expected error for missing package path")
+		t.Error("Expected error for missing package name")
 	}
-	if err.Error() != "package path must be set" {
-		t.Errorf("Expected 'package path must be set', got '%s'", err.Error())
+	if err.Error() != "package name must be set" {
+		t.Errorf("Expected 'package name must be set', got '%s'", err.Error())
+	}
+}
+
+func TestExec_PullCommand_MissingVersion(t *testing.T) {
+	args := Args{
+		Command:     "pull",
+		Registry:    "test-registry",
+		Name:        "my-app",
+		Filename:    "app.tar.gz",
+		Destination: "/tmp/test",
+		Token:       "test-token",
+		Account:     "test-account",
+		PkgURL:      "https://pkg.qa.harness.io",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing version")
+	}
+	if err.Error() != "package version must be set" {
+		t.Errorf("Expected 'package version must be set', got '%s'", err.Error())
+	}
+}
+
+func TestExec_PullCommand_MissingFilename(t *testing.T) {
+	args := Args{
+		Command:     "pull",
+		Registry:    "test-registry",
+		Name:        "my-app",
+		Version:     "1.0.0",
+		Destination: "/tmp/test",
+		Token:       "test-token",
+		Account:     "test-account",
+		PkgURL:      "https://pkg.qa.harness.io",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing filename")
+	}
+	if err.Error() != "filename must be set" {
+		t.Errorf("Expected 'filename must be set', got '%s'", err.Error())
 	}
 }
 
 func TestExec_PullCommand_MissingDestination(t *testing.T) {
 	args := Args{
-		Command:     "pull",
-		Registry:    "test-registry",
-		PackagePath: "my-app/1.0.0",
-		Token:       "test-token",
-		Account:     "test-account",
-		PkgURL:      "https://app.harness.io",
+		Command:  "pull",
+		Registry: "test-registry",
+		Name:     "my-app",
+		Version:  "1.0.0",
+		Filename: "app.tar.gz",
+		Token:    "test-token",
+		Account:  "test-account",
+		PkgURL:   "https://pkg.qa.harness.io",
 	}
 
 	err := Exec(context.Background(), args)
