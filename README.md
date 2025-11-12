@@ -1,4 +1,4 @@
-# droneHarPlugin
+# drone-har
 
 A Drone plugin for managing generic artifacts in Harness Artifact Registry (HAR) using the Harness CLI. Supports multiple operations including upload, download, info retrieval, and deletion.
 
@@ -22,7 +22,7 @@ name: default
 
 steps:
 - name: upload-artifact
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: push  # Optional - defaults to push
     registry: my-registry
@@ -48,7 +48,7 @@ name: artifact-management
 steps:
 # Upload artifact
 - name: upload-artifact
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: push
     registry: my-registry
@@ -68,7 +68,7 @@ steps:
 
 # Get artifact info
 - name: get-artifact-info
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: get
     registry: my-registry
@@ -82,7 +82,7 @@ steps:
 
 # Download artifact (in a different pipeline/stage)
 - name: download-artifact
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: pull
     registry: my-registry
@@ -210,10 +210,10 @@ Set `enable_proxy: true` in your pipeline settings to activate proxy support.
 
 ```bash
 # Build the binary
-go build -o droneHarPlugin
+go build -o drone-har
 
 # Build Docker image
-docker build -t harness/droneHarPlugin .
+docker build -t harness/drone-har .
 ```
 
 ## Testing

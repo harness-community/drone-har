@@ -1,8 +1,8 @@
-# Makefile for droneHarPlugin
+# Makefile for drone-har
 
 # Variables
-BINARY_NAME=droneHarPlugin
-DOCKER_IMAGE_NAME=harness/droneHarPlugin
+BINARY_NAME=drone-har
+DOCKER_IMAGE_NAME=harness/drone-har
 VERSION?=latest
 
 # Build the binary

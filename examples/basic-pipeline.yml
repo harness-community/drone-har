@@ -10,7 +10,7 @@ steps:
   - tar -czf myapp-${DRONE_BUILD_NUMBER}.tar.gz myapp
 
 - name: upload-artifact
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     registry: my-registry
     source: myapp-${DRONE_BUILD_NUMBER}.tar.gz

@@ -5,7 +5,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o droneHarPlugin .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o drone-har .
 
 FROM alpine:latest
 
@@ -20,6 +20,6 @@ RUN apk add --no-cache curl && \
 
 WORKDIR /root/
 
-COPY --from=builder /app/droneHarPlugin .
+COPY --from=builder /app/drone-har .
 
-ENTRYPOINT ["./droneHarPlugin"]
+ENTRYPOINT ["./drone-har"]

@@ -1,6 +1,6 @@
-# Testing Guide for droneHarPlugin
+# Testing Guide for drone-har
 
-This guide explains how to test the droneHarPlugin to ensure it works correctly before deployment.
+This guide explains how to test the drone-har plugin to ensure it works correctly before deployment.
 
 ## 🧪 Testing Levels
 
@@ -34,7 +34,7 @@ This will:
 Before running tests, ensure you have:
 
 - [ ] Go 1.22.7+ installed
-- [ ] Plugin built successfully (`go build -o droneHarPlugin .`)
+- [ ] Plugin built successfully (`go build -o drone-har .`)
 - [ ] Unit tests passing (`go test ./...`)
 
 For real testing, additionally ensure:
@@ -50,7 +50,7 @@ If you prefer manual testing:
 ### Step 1: Build and Test Locally
 ```bash
 # Build the plugin
-go build -o droneHarPlugin .
+go build -o drone-har .
 
 # Run unit tests
 go test ./... -v
@@ -63,13 +63,13 @@ export PLUGIN_VERSION="1.0.0"
 export PLUGIN_TOKEN="fake-token"
 export PLUGIN_ACCOUNT="fake-account"
 
-./droneHarPlugin
+./drone-har
 ```
 
 ### Step 2: Test with Docker
 ```bash
 # Build Docker image
-docker build -t droneharplugin-test .
+docker build -t drone-har-test .
 
 # Test with environment variables
 docker run --rm \
@@ -80,7 +80,7 @@ docker run --rm \
   -e PLUGIN_TOKEN=your-token \
   -e PLUGIN_ACCOUNT=your-account \
   -v $(pwd)/test-sample.txt:/test-sample.txt \
-  droneHarPlugin-test
+  drone-har-test
 ```
 
 ## ✅ Success Indicators

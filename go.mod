@@ -1,4 +1,4 @@
-module github.com/harness/droneHarPlugin
+module github.com/harness/drone-har
 
 go 1.22.7
 

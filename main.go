@@ -6,10 +6,11 @@ package main
 
 import (
 	"context"
-	"github.com/harness/droneHarPlugin/plugin"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
+
+	"github.com/harness/drone-har/plugin"
 )
 
 func main() {

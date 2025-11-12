@@ -13,7 +13,7 @@ steps:
 
 # Upload to staging registry
 - name: upload-to-staging
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: push
     registry: staging-registry
@@ -37,7 +37,7 @@ steps:
 
 # Verify staging upload
 - name: verify-staging-upload
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: get
     registry: staging-registry
@@ -57,7 +57,7 @@ steps:
 
 # Upload to production registry (on tags)
 - name: upload-to-production
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: push
     registry: production-registry
@@ -79,7 +79,7 @@ steps:
 
 # Cleanup old staging artifacts (keep last 5)
 - name: cleanup-old-staging
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: delete
     registry: staging-registry
@@ -108,7 +108,7 @@ depends_on:
 steps:
 # Download production artifact for deployment
 - name: download-production-artifact
-  image: harness/droneHarPlugin
+  image: harness/drone-har
   settings:
     command: pull
     registry: production-registry
