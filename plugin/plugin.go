@@ -131,8 +131,8 @@ func execPushCommand(args Args) error {
 		logrus.Printf("No version specified, using default: %s", version)
 	}
 
-	// Build Harness CLI command - only registry and source as positional args
-	cmdArgs := []string{getHarnessBin(), "ar", "push", packageType, args.Registry, args.Source}
+	// Build Harness CLI command - package-type, registry and source as positional args
+	cmdArgs := []string{getHarnessBin(), "artifact", "push", packageType, args.Registry, args.Source}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--name", args.Name)
@@ -194,11 +194,18 @@ func execPullCommand(args Args) error {
 		return fmt.Errorf("package URL must be set")
 	}
 
+	// Set default package type
+	packageType := args.PackageType
+	if packageType == "" {
+		packageType = "generic"
+		logrus.Printf("No package type specified, using default: %s", packageType)
+	}
+
 	// Construct package path in the format expected by harness-cli: <package_name>/<version>/<filename>
 	packagePath := fmt.Sprintf("%s/%s/%s", args.Name, args.Version, args.Filename)
 
 	// Build Harness CLI command
-	cmdArgs := []string{getHarnessBin(), "ar", "pull", "generic", args.Registry, packagePath, args.Destination}
+	cmdArgs := []string{getHarnessBin(), "artifact", "pull", packageType, args.Registry, packagePath, args.Destination}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--token", args.Token)
@@ -240,10 +247,10 @@ func execGetCommand(args Args) error {
 		return fmt.Errorf("account ID must be set")
 	}
 
-	// Use 'hc ar get artifact' command with registry and name flags
+	// Use 'hc artifact get' command with name as positional arg and registry as flag
 	cmd := []string{
 		getHarnessBin(),
-		"ar", "get", "artifact", args.Name,
+		"artifact", "get", args.Name,
 	}
 
 	// Add required flags
@@ -284,8 +291,8 @@ func execDeleteCommand(args Args) error {
 		return fmt.Errorf("account ID must be set")
 	}
 
-	// Build Harness CLI command - use 'hc ar delete artifact' with name as argument and registry as flag
-	cmdArgs := []string{getHarnessBin(), "ar", "delete", "artifact", args.Name}
+	// Build Harness CLI command - use 'hc artifact delete' with name as argument and registry as flag
+	cmdArgs := []string{getHarnessBin(), "artifact", "delete", args.Name}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--registry", args.Registry)

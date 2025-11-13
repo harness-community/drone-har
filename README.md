@@ -219,12 +219,30 @@ docker build -t harness/drone-har .
 ## Testing
 
 ```bash
-# Run tests
+# Run unit tests
+make test
+# or
 go test ./...
 
 # Run tests with coverage
+make test-coverage
+# or
 go test -cover ./...
+
+# Run integration tests (requires credentials)
+export HARNESS_TOKEN="your-token"
+export HARNESS_ACCOUNT="your-account"
+export HARNESS_ORG="default"
+export HARNESS_PROJECT="your-project"
+make test-integration
+# or
+go test -tags=integration -v ./plugin/...
+
+# Run all tests
+make test-all
 ```
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ## Commands
 

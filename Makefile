@@ -13,13 +13,22 @@ build:
 build-local:
 	go build -o $(BINARY_NAME) .
 
-# Run tests
+# Run tests (unit tests only)
 test:
 	go test -v ./...
 
 # Run tests with coverage
 test-coverage:
 	go test -cover ./...
+
+# Run integration tests (requires HARNESS_TOKEN and HARNESS_ACCOUNT)
+test-integration:
+	go test -tags=integration -v ./plugin/...
+
+# Run all tests (unit + integration)
+test-all:
+	go test -v ./...
+	go test -tags=integration -v ./plugin/...
 
 # Clean build artifacts
 clean:
@@ -56,4 +65,4 @@ deps:
 # Run all checks
 check: fmt test lint
 
-.PHONY: build build-local test test-coverage clean docker-build docker-run fmt lint deps check
+.PHONY: build build-local test test-coverage test-integration test-all clean docker-build docker-run fmt lint deps check

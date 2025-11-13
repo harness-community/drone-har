@@ -312,3 +312,71 @@ func TestExec_PullCommand_MissingDestination(t *testing.T) {
 		t.Errorf("Expected 'destination path must be set', got '%s'", err.Error())
 	}
 }
+
+func TestExec_GetCommand_MissingRegistry(t *testing.T) {
+	args := Args{
+		Command: "get",
+		Name:    "test-artifact",
+		Token:   "test-token",
+		Account: "test-account",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing registry")
+	}
+	if err.Error() != "registry name must be set" {
+		t.Errorf("Expected 'registry name must be set', got '%s'", err.Error())
+	}
+}
+
+func TestExec_GetCommand_MissingName(t *testing.T) {
+	args := Args{
+		Command:  "get",
+		Registry: "test-registry",
+		Token:    "test-token",
+		Account:  "test-account",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing name")
+	}
+	if err.Error() != "artifact name must be set" {
+		t.Errorf("Expected 'artifact name must be set', got '%s'", err.Error())
+	}
+}
+
+func TestExec_DeleteCommand_MissingRegistry(t *testing.T) {
+	args := Args{
+		Command: "delete",
+		Name:    "test-artifact",
+		Token:   "test-token",
+		Account: "test-account",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing registry")
+	}
+	if err.Error() != "registry name must be set" {
+		t.Errorf("Expected 'registry name must be set', got '%s'", err.Error())
+	}
+}
+
+func TestExec_DeleteCommand_MissingName(t *testing.T) {
+	args := Args{
+		Command:  "delete",
+		Registry: "test-registry",
+		Token:    "test-token",
+		Account:  "test-account",
+	}
+
+	err := Exec(context.Background(), args)
+	if err == nil {
+		t.Error("Expected error for missing name")
+	}
+	if err.Error() != "artifact name must be set" {
+		t.Errorf("Expected 'artifact name must be set', got '%s'", err.Error())
+	}
+}
