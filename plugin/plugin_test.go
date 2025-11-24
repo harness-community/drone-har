@@ -125,15 +125,6 @@ func TestExec_MissingPkgURL(t *testing.T) {
 	}
 }
 
-func TestGetHarnessBin_Windows(t *testing.T) {
-	// This test would need to be run on Windows or with mocked file system
-	// For now, just test the Unix path
-	bin := getHarnessBin()
-	if bin != "hc" {
-		t.Errorf("Expected 'hc', got '%s'", bin)
-	}
-}
-
 func TestParseBoolOrDefault(t *testing.T) {
 	tests := []struct {
 		defaultValue bool

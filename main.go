@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
@@ -39,7 +40,11 @@ func main() {
 type formatter struct{}
 
 func (*formatter) Format(entry *logrus.Entry) ([]byte, error) {
-	return []byte(entry.Message), nil
+	message := entry.Message
+	if !strings.HasSuffix(message, "\n") {
+		message += "\n"
+	}
+	return []byte(message), nil
 }
 
 // text formatter that writes logs with level information
