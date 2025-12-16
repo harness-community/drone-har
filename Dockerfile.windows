@@ -10,8 +10,8 @@ RUN go mod download
 COPY . .
 RUN go build -o drone-har.exe .
 
-# Build Harness CLI from specific commit
-FROM golang:1.24-windowsservercore-ltsc2022 AS hc-builder
+# Download pre-built Harness CLI
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS hc-downloader
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
@@ -23,9 +23,10 @@ RUN git clone https://github.com/harness/harness-cli.git C:\\hc ; \
 # Final lightweight image
 FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
 
-# Copy binaries to C:\bin
+# Create bin directory and copy binaries
+RUN mkdir C:\\bin
 COPY --from=builder C:/app/drone-har.exe C:/bin/har.exe
-COPY --from=hc-builder C:/hc/hc.exe C:/bin/hc.exe
+COPY --from=hc-downloader C:/hc.exe C:/bin/hc.exe
 
 # Set PATH to include our binaries
 USER ContainerAdministrator
