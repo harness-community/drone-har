@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Build artifacts
+drone-har
+*.exe
+
+# Documentation
+README.md
+TESTING.md
+LICENSE
+
+# Test files
+*_test.go
+examples/
+run_integration_tests.sh
+
+# CI/CD
+.drone.yml
+plugin.yml
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,35 @@
+# Windows Dockerfile for drone-har
+# Usage: docker build -f Dockerfile.windows -t harness/har-plugin:windows .
+
+FROM golang:1.22.7-windowsservercore-ltsc2022 AS builder
+
+WORKDIR C:/app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o drone-har.exe .
+
+# Build Harness CLI from specific commit
+FROM golang:1.22.7-windowsservercore-ltsc2022 AS hc-builder
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
+
+RUN git clone https://github.com/harness/harness-cli.git C:\\hc ; \
+    cd C:\\hc ; \
+    git checkout 69ffb0ead958ba93d69accaaf16630178439bd94 ; \
+    go build -o hc.exe ./cmd/hc
+
+# Final lightweight image
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
+
+# Copy binaries to C:\bin
+COPY --from=builder C:/app/drone-har.exe C:/bin/har.exe
+COPY --from=hc-builder C:/hc/hc.exe C:/bin/hc.exe
+
+# Set PATH to include our binaries
+USER ContainerAdministrator
+RUN setx /M PATH "C:\\bin;%PATH%"
+USER ContainerUser
+
+ENTRYPOINT ["C:\\bin\\har.exe"]

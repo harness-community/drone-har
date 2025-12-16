@@ -7,19 +7,24 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o drone-har .
 
+# Build Harness CLI from specific commit
+FROM golang:1.24-alpine AS hc-builder
+
+RUN apk add --no-cache git
+WORKDIR /hc
+RUN git clone https://github.com/harness/harness-cli.git . && \
+    git checkout 69ffb0ead958ba93d69accaaf16630178439bd94
+RUN CGO_ENABLED=0 go build -o hc ./cmd/hc
+
 FROM alpine:latest
 
 # Install ca-certificates for HTTPS requests
 RUN apk --no-cache add ca-certificates
 
-# Install Harness CLI
-RUN apk add --no-cache curl && \
-    curl -L https://github.com/harness/harness-cli/releases/latest/download/hc-linux-amd64 -o /usr/local/bin/hc && \
-    chmod +x /usr/local/bin/hc && \
-    apk del curl
+# Copy harness-cli from hc-builder
+COPY --from=hc-builder /hc/hc /usr/local/bin/hc
 
-WORKDIR /root/
+# Copy drone-har binary to /bin/har
+COPY --from=builder /app/drone-har /bin/har
 
-COPY --from=builder /app/drone-har .
-
-ENTRYPOINT ["./drone-har"]
+ENTRYPOINT ["/bin/har"]
