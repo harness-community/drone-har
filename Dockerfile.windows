@@ -11,7 +11,7 @@ COPY . .
 RUN go build -o drone-har.exe .
 
 # Build Harness CLI from specific commit
-FROM golang:1.22.7-windowsservercore-ltsc2022 AS hc-builder
+FROM golang:1.24-windowsservercore-ltsc2022 AS hc-builder
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
