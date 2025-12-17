@@ -2,59 +2,51 @@
 # Make sure the plugin is built first
 go build -o drone-har
 
-# Test script for resilient directory upload functionality
-# This demonstrates the new features: path parameter and failure resilience
+# Test script for single file upload functionality
+# This demonstrates the single file upload feature
 
-echo "=== RESILIENT DIRECTORY UPLOAD TEST ==="
-echo "Testing enhanced generic package handler with:"
-echo "1. Path parameter in commands"
-echo "2. Failure resilience (continues on individual file failures)"
+echo "=== SINGLE FILE UPLOAD TEST ==="
+echo "Testing generic package handler with:"
+echo "1. Single file upload only"
+echo "2. Directory uploads are rejected"
 echo ""
 
 # Add current directory to PATH so hc can be found
 export PATH="$PATH:$(pwd)"
 
-# Create test directory with various file types
-TEST_DIR="/tmp/resilient-test"
-rm -rf $TEST_DIR
-mkdir -p $TEST_DIR/subdir
+# Create test file for single file upload
+TEST_FILE="/tmp/test-artifact.txt"
+rm -f $TEST_FILE
 
-# Create valid files
-echo "Valid content 1" > $TEST_DIR/valid1.txt
-echo "Valid content 2" > $TEST_DIR/valid2.md
-echo "Subdirectory content" > $TEST_DIR/subdir/nested.json
+# Create a single test file
+echo "This is a test artifact for single file upload" > $TEST_FILE
+echo "Created by drone-har test script" >> $TEST_FILE
+echo "Timestamp: $(date)" >> $TEST_FILE
 
-# Create files that might cause issues (for testing resilience)
-echo "File with special chars" > "$TEST_DIR/file-with-dashes.txt"
-echo "Another valid file" > $TEST_DIR/another_valid.log
-
-# Create a file with problematic name (to test skipping)
-touch "$TEST_DIR/.hidden-file"
-
-echo "Created test directory structure:"
-find $TEST_DIR -type f -exec echo "  {}" \;
+echo "Created test file: $TEST_FILE"
+echo "File contents:"
+cat $TEST_FILE
 echo ""
 
 # Set plugin environment variables
 export PLUGIN_COMMAND=push
-export PLUGIN_REGISTRY=testt
-export PLUGIN_PACKAGE_TYPE=generic
-export PLUGIN_SOURCE=$TEST_DIR
+export PLUGIN_REGISTRY=generic-local-1
+export PLUGIN_PACKAGE_TYPE=GENERIC
+export PLUGIN_SOURCE=$TEST_FILE
 export PLUGIN_NAME=resilient_test
 export PLUGIN_VERSION=1.0.0
-export PLUGIN_DESCRIPTION="Testing resilient upload with path parameter"
-export PLUGIN_TOKEN=pat.rfmnLA8cRVGqwC8S-Quo6A.691422fdbc4ac02fc793739c.T2OD9qky61ms6PWCFxcQ
-export PLUGIN_ACCOUNT=rfmnLA8cRVGqwC8S-Quo6A
-export PLUGIN_PKG_URL=https://pkg.harness.io
+export PLUGIN_DESCRIPTION="Testing single file upload"
+export PLUGIN_TOKEN=eyJhbGciOiJIUzI1NiJ9
+export PLUGIN_ACCOUNT=iWnhltqOT7GFt7R-F_zP7Q
+export PLUGIN_PKG_URL=https://pkg.qa.harness.io
 export PLUGIN_ORG=default
-export PLUGIN_PROJECT=jatintest
+export PLUGIN_PROJECT=sourabh_test
 
-echo "Starting resilient directory upload test..."
+echo "Starting single file upload test..."
 echo "Expected behavior:"
-echo "- Should process all valid files"
-echo "- Should skip hidden files automatically"
-echo "- Should continue even if some files fail"
-echo "- Should show comprehensive summary at the end"
+echo "- Should upload the single file successfully"
+echo "- Should reject directories if provided"
+echo "- Should fail the entire step if upload fails"
 echo ""
 
 # Run the plugin
@@ -62,10 +54,9 @@ echo ""
 
 echo ""
 echo "=== TEST COMPLETED ==="
-echo "Check the summary above to see:"
-echo "✓ Successfully uploaded files"
-echo "✗ Any failed uploads (should continue processing)"
-echo "⚠ Any skipped files (hidden/invalid names)"
+echo "Check the output above to see:"
+echo "✓ Single file upload result"
+echo "✗ Any upload failures (should fail entire step)"
 
 # Cleanup
-rm -rf $TEST_DIR
+rm -f $TEST_FILE

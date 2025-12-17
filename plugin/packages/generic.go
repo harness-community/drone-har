@@ -77,14 +77,13 @@ func (h *GenericHandler) Push(ctx context.Context, config Config) error {
 	logrus.Printf("Is directory: %v", fileInfo.IsDir())
 
 	if fileInfo.IsDir() {
-		// Handle directory - push all files in the directory
-		logrus.Printf("Detected directory, calling pushDirectory")
-		return h.pushDirectory(config, version)
-	} else {
-		// Handle single file
-		logrus.Printf("Detected file, calling pushSingleFile")
-		return h.pushSingleFile(config, version, config.Source, config.Name, "")
+		// Reject directories - only single files are allowed
+		return fmt.Errorf("directories are not supported, only single files can be pushed. Source '%s' is a directory", config.Source)
 	}
+
+	// Handle single file
+	logrus.Printf("Detected file, calling pushSingleFile")
+	return h.pushSingleFile(config, version, config.Source, config.Name, "")
 }
 
 // Pull downloads generic artifacts from the registry
@@ -337,14 +336,27 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 		artifactName = customName
 	}
 
-	// Build Harness CLI command - package-type, registry and source as positional args
-	cmdArgs := []string{getHarnessBin(), "artifact", "push", string(Generic), config.Registry, filePath}
+	// Build Harness CLI command - start with base command and authentication flags
+	cmdArgs := []string{getHarnessBin(), "artifact"}
 
-	// Add required flags
+	// Add authentication and context flags immediately after "artifact"
+	cmdArgs = append(cmdArgs, "--account", config.Account)
+	// Add "CIManager " prefix to the token
+	tokenWithPrefix := fmt.Sprintf("CIManager %s", config.Token)
+	cmdArgs = append(cmdArgs, "--token", tokenWithPrefix)
+	if config.Org != "" {
+		cmdArgs = append(cmdArgs, "--org", config.Org)
+	}
+	if config.Project != "" {
+		cmdArgs = append(cmdArgs, "--project", config.Project)
+	}
+
+	// Add the rest of the command: push, package-type, registry, and source
+	cmdArgs = append(cmdArgs, "push", strings.ToLower(string(Generic)), config.Registry, filePath)
+
+	// Add other required flags
 	cmdArgs = append(cmdArgs, "--name", artifactName)
 	cmdArgs = append(cmdArgs, "--version", version)
-	cmdArgs = append(cmdArgs, "--token", config.Token)
-	cmdArgs = append(cmdArgs, "--account", config.Account)
 	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
 
 	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
@@ -352,25 +364,13 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 		cmdArgs = append(cmdArgs, "--path", relativePath)
 	}
 
-	// Add optional flags
-	if config.Org != "" {
-		cmdArgs = append(cmdArgs, "--org", config.Org)
-	}
-	if config.Project != "" {
-		cmdArgs = append(cmdArgs, "--project", config.Project)
-	}
+	// Add remaining optional flags
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
-	}
-	if config.Description != "" {
-		cmdArgs = append(cmdArgs, "--description", config.Description)
 	}
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
 	}
-
-	// Add format flag for consistent output
-	cmdArgs = append(cmdArgs, "--format", "json")
 
 	return executeCommand(cmdArgs, fmt.Sprintf("push artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
@@ -383,12 +383,24 @@ func getHarnessBin() string {
 			return "C:/bin/hc.exe"
 		}
 	}
-	return "hc"
+	return "./hc"
 }
 
 // executeCommand executes a Harness CLI command
 func executeCommand(cmdArgs []string, operation string) error {
-	cmdStr := strings.Join(cmdArgs[:], " ")
+	// Create a masked version of the command for logging
+	maskedArgs := make([]string, len(cmdArgs))
+	copy(maskedArgs, cmdArgs)
+
+	// Mask the token value
+	for i, arg := range maskedArgs {
+		if arg == "--token" && i+1 < len(maskedArgs) {
+			maskedArgs[i+1] = "***MASKED***"
+			break
+		}
+	}
+
+	cmdStr := strings.Join(maskedArgs, " ")
 	logrus.Printf("Executing command: %s", cmdStr)
 
 	// Execute command directly without shell to avoid argument parsing issues
@@ -413,6 +425,18 @@ func executeCommand(cmdArgs []string, operation string) error {
 func trace(cmd *exec.Cmd) {
 	// Only show trace in debug mode to reduce noise
 	if logrus.GetLevel() >= logrus.DebugLevel {
-		fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(cmd.Args, " "))
+		// Create a masked version of the command for tracing
+		maskedArgs := make([]string, len(cmd.Args))
+		copy(maskedArgs, cmd.Args)
+
+		// Mask the token value
+		for i, arg := range maskedArgs {
+			if arg == "--token" && i+1 < len(maskedArgs) {
+				maskedArgs[i+1] = "***MASKED***"
+				break
+			}
+		}
+
+		fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(maskedArgs, " "))
 	}
 }

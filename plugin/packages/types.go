@@ -12,11 +12,11 @@ import (
 type PackageType string
 
 const (
-	Generic PackageType = "generic"
-	NPM     PackageType = "npm"
-	RPM     PackageType = "rpm"
-	Python  PackageType = "python"
-	Go      PackageType = "go"
+	Generic PackageType = "GENERIC"
+	NPM     PackageType = "NPM"
+	RPM     PackageType = "RPM"
+	Python  PackageType = "PYTHON"
+	Go      PackageType = "GO"
 )
 
 // Config holds the common configuration for all package handlers

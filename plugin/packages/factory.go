@@ -37,8 +37,8 @@ func (f *HandlerFactory) registerHandler(handler PackageHandler) {
 
 // GetHandler returns the appropriate handler for the given package type
 func (f *HandlerFactory) GetHandler(packageType string) (PackageHandler, error) {
-	// Normalize package type to lowercase
-	normalizedType := PackageType(strings.ToLower(packageType))
+	// Normalize package type to uppercase
+	normalizedType := PackageType(packageType)
 	
 	// Default to generic if empty
 	if normalizedType == "" {
@@ -65,7 +65,7 @@ func (f *HandlerFactory) GetSupportedTypes() string {
 
 // IsSupported checks if a package type is supported
 func (f *HandlerFactory) IsSupported(packageType string) bool {
-	normalizedType := PackageType(strings.ToLower(packageType))
+	normalizedType := PackageType(strings.ToUpper(packageType))
 	_, exists := f.handlers[normalizedType]
 	return exists
 }
