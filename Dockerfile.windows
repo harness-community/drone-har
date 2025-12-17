@@ -1,7 +1,5 @@
-# Windows Dockerfile for drone-har
-# Usage: docker build -f Dockerfile.windows -t harness/har-plugin:windows .
-
-FROM golang:1.22.7-windowsservercore-ltsc2022 AS builder
+# Build har.exe
+FROM golang:1.24-windowsservercore-ltsc2022 AS builder
 
 WORKDIR C:/app
 COPY go.mod go.sum ./
@@ -10,27 +8,21 @@ RUN go mod download
 COPY . .
 RUN go build -o drone-har.exe .
 
-# Download pre-built Harness CLI
-FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS hc-downloader
+# Build Harness CLI
+FROM golang:1.24-windowsservercore-ltsc2022 AS hc-downloader
 
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
+WORKDIR C:/hc
+RUN git clone https://github.com/harness/harness-cli.git .
+RUN git checkout 69ffb0ead958ba93d69accaaf16630178439bd94
+RUN go build -o hc.exe ./cmd/hc
 
-RUN git clone https://github.com/harness/harness-cli.git C:\\hc ; \
-    cd C:\\hc ; \
-    git checkout 69ffb0ead958ba93d69accaaf16630178439bd94 ; \
-    go build -o hc.exe ./cmd/hc
+# Final runtime image (servercore is safer than nanoserver)
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
-# Final lightweight image
-FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
-
-# Create bin directory and copy binaries
-RUN mkdir C:\\bin
+WORKDIR C:/bin
 COPY --from=builder C:/app/drone-har.exe C:/bin/har.exe
-COPY --from=hc-downloader C:/hc.exe C:/bin/hc.exe
+COPY --from=hc-downloader C:/hc/hc.exe C:/bin/hc.exe
 
-# Set PATH to include our binaries
-USER ContainerAdministrator
-RUN setx /M PATH "C:\\bin;%PATH%"
-USER ContainerUser
+ENV PATH="C:\\bin;${PATH}"
 
 ENTRYPOINT ["C:\\bin\\har.exe"]
