@@ -17,6 +17,8 @@ const (
 	RPM     PackageType = "RPM"
 	Python  PackageType = "PYTHON"
 	Go      PackageType = "GO"
+	NuGet   PackageType = "NUGET"
+	Maven   PackageType = "MAVEN"
 )
 
 // Config holds the common configuration for all package handlers

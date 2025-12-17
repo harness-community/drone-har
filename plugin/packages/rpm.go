@@ -7,6 +7,9 @@ package packages
 import (
 	"context"
 	"fmt"
+	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 // RPMHandler handles RPM package operations
@@ -23,15 +26,58 @@ func NewRPMHandler() *RPMHandler {
 
 // Validate checks if the configuration is valid for RPM packages
 func (h *RPMHandler) Validate(config Config) error {
-	// TODO: Implement RPM-specific validation
-	return fmt.Errorf("RPM package type is not yet implemented")
+	if config.Registry == "" {
+		return fmt.Errorf("registry name must be set")
+	}
+	if config.Source == "" {
+		return fmt.Errorf("source file path must be set")
+	}
+	if config.Name == "" {
+		return fmt.Errorf("artifact name must be set")
+	}
+	if config.Token == "" {
+		return fmt.Errorf("authentication token must be set")
+	}
+	if config.Account == "" {
+		return fmt.Errorf("account ID must be set")
+	}
+	if config.PkgURL == "" {
+		return fmt.Errorf("package URL must be set")
+	}
+	return nil
 }
 
 // Push uploads RPM packages to the registry
 func (h *RPMHandler) Push(ctx context.Context, config Config) error {
-	// TODO: Implement RPM push logic
-	// This would handle .rpm files, spec files, etc.
-	return fmt.Errorf("RPM push is not yet implemented")
+	logrus.Println("Executing RPM push command")
+
+	// Validate configuration
+	if err := h.Validate(config); err != nil {
+		return err
+	}
+
+	// Check if source is a file (only single files allowed)
+	fileInfo, err := os.Stat(config.Source)
+	if err != nil {
+		return fmt.Errorf("failed to access source path '%s': %w", config.Source, err)
+	}
+
+	if fileInfo.IsDir() {
+		return fmt.Errorf("directories are not supported, only single files can be pushed. Source '%s' is a directory", config.Source)
+	}
+
+	logrus.Printf("Source path: %s", config.Source)
+	logrus.Printf("Detected file, calling pushSingleFile")
+
+	return h.pushSingleFile(config, config.Source, config.Name)
+}
+
+// pushSingleFile handles pushing a single file for RPM packages
+func (h *RPMHandler) pushSingleFile(config Config, filePath, artifactName string) error {
+	// Build command using shared helper (no file path and version in command for RPM)
+	cmdArgs := buildPushCommand(RPM, config, "", filePath, artifactName, false)
+
+	return executeCommand(cmdArgs, fmt.Sprintf("push RPM artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads RPM packages from the registry

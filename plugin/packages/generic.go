@@ -336,9 +336,23 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 		artifactName = customName
 	}
 
-	// Build Harness CLI command - start with base command and authentication flags
-	cmdArgs := []string{getHarnessBin(), "artifact"}
+	// Build command using shared helper
+	cmdArgs := buildPushCommand(Generic, config, version, filePath, artifactName, true)
+	
+	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
+	if relativePath != "" {
+		cmdArgs = append(cmdArgs, "--path", relativePath)
+	}
 
+	return executeCommand(cmdArgs, fmt.Sprintf("push artifact '%s' to registry '%s'", artifactName, config.Registry))
+}
+
+// Helper functions
+
+// buildPushCommand builds a common push command for any package type
+func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) []string {
+	cmdArgs := []string{getHarnessBin(), "artifact"}
+	
 	// Add authentication and context flags immediately after "artifact"
 	cmdArgs = append(cmdArgs, "--account", config.Account)
 	// Add "CIManager " prefix to the token
@@ -350,20 +364,23 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 	if config.Project != "" {
 		cmdArgs = append(cmdArgs, "--project", config.Project)
 	}
-
-	// Add the rest of the command: push, package-type, registry, and source
-	cmdArgs = append(cmdArgs, "push", strings.ToLower(string(Generic)), config.Registry, filePath)
-
+	
+	// Add the rest of the command: push, package-type, registry
+	if includeFileAndVersion {
+		// For generic packages, include file path
+		cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry, filePath)
+	} else {
+		// For other package types, don't include file path
+		cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry)
+	}
+	
 	// Add other required flags
 	cmdArgs = append(cmdArgs, "--name", artifactName)
-	cmdArgs = append(cmdArgs, "--version", version)
-	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
-
-	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
-	if relativePath != "" {
-		cmdArgs = append(cmdArgs, "--path", relativePath)
+	if includeFileAndVersion {
+		cmdArgs = append(cmdArgs, "--version", version)
 	}
-
+	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
+	
 	// Add remaining optional flags
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
@@ -371,11 +388,9 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
 	}
-
-	return executeCommand(cmdArgs, fmt.Sprintf("push artifact '%s' to registry '%s'", artifactName, config.Registry))
+	
+	return cmdArgs
 }
-
-// Helper functions
 
 func getHarnessBin() string {
 	if runtime.GOOS == "windows" {
