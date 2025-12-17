@@ -338,7 +338,7 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 
 	// Build command using shared helper
 	cmdArgs := buildPushCommand(Generic, config, version, filePath, artifactName, true)
-	
+
 	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
 	if relativePath != "" {
 		cmdArgs = append(cmdArgs, "--path", relativePath)
@@ -352,7 +352,7 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 // buildPushCommand builds a common push command for any package type
 func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) []string {
 	cmdArgs := []string{getHarnessBin(), "artifact"}
-	
+
 	// Add authentication and context flags immediately after "artifact"
 	cmdArgs = append(cmdArgs, "--account", config.Account)
 	// Add "CIManager " prefix to the token
@@ -364,7 +364,7 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	if config.Project != "" {
 		cmdArgs = append(cmdArgs, "--project", config.Project)
 	}
-	
+
 	// Add the rest of the command: push, package-type, registry
 	if includeFileAndVersion {
 		// For generic packages, include file path
@@ -373,14 +373,14 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		// For other package types, don't include file path
 		cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry)
 	}
-	
+
 	// Add other required flags
 	cmdArgs = append(cmdArgs, "--name", artifactName)
 	if includeFileAndVersion {
 		cmdArgs = append(cmdArgs, "--version", version)
 	}
 	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
-	
+
 	// Add remaining optional flags
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
@@ -388,7 +388,7 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
 	}
-	
+
 	return cmdArgs
 }
 
@@ -398,7 +398,7 @@ func getHarnessBin() string {
 			return "C:/bin/hc.exe"
 		}
 	}
-	return "./hc"
+	return "hc"
 }
 
 // executeCommand executes a Harness CLI command
