@@ -6,6 +6,7 @@ package packages
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -337,7 +338,10 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 	}
 
 	// Build command using shared helper
-	cmdArgs := buildPushCommand(Generic, config, version, filePath, artifactName, true)
+	cmdArgs, err := buildPushCommand(Generic, config, version, filePath, artifactName, true)
+	if err != nil {
+		return err
+	}
 
 	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
 	if relativePath != "" {
@@ -349,15 +353,59 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 
 // Helper functions
 
+// AuthConfig represents the Harness authentication configuration
+type AuthConfig struct {
+	BaseURL   string `json:"base_url"`
+	Token     string `json:"token"`
+	AccountID string `json:"account_id"`
+}
+
+// createAuthFile creates ~/.harness/auth.json with authentication details
+func createAuthFile(config Config) error {
+	// Get home directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	// Create .harness directory if it doesn't exist
+	harnessDir := filepath.Join(homeDir, ".harness")
+	if err := os.MkdirAll(harnessDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .harness directory: %w", err)
+	}
+
+	// Prepare auth configuration
+	authConfig := AuthConfig{
+		BaseURL:   config.PkgURL,
+		Token:     fmt.Sprintf("CIManager %s", config.Token),
+		AccountID: config.Account,
+	}
+
+	// Write auth.json file
+	authFile := filepath.Join(harnessDir, "auth.json")
+	authData, err := json.MarshalIndent(authConfig, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal auth config: %w", err)
+	}
+
+	if err := os.WriteFile(authFile, authData, 0600); err != nil {
+		return fmt.Errorf("failed to write auth file: %w", err)
+	}
+
+	logrus.Printf("Created auth file: %s", authFile)
+	return nil
+}
+
 // buildPushCommand builds a common push command for any package type
-func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) []string {
+func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) ([]string, error) {
+	// Create auth file first
+	if err := createAuthFile(config); err != nil {
+		return nil, fmt.Errorf("failed to create auth file: %w", err)
+	}
+
 	cmdArgs := []string{getHarnessBin(), "artifact"}
 
-	// Add authentication and context flags immediately after "artifact"
-	cmdArgs = append(cmdArgs, "--account", config.Account)
-	// Add "CIManager " prefix to the token
-	tokenWithPrefix := fmt.Sprintf("CIManager %s", config.Token)
-	cmdArgs = append(cmdArgs, "--token", tokenWithPrefix)
+	// Add context flags (no token needed as it's in auth.json)
 	if config.Org != "" {
 		cmdArgs = append(cmdArgs, "--org", config.Org)
 	}
@@ -365,18 +413,14 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		cmdArgs = append(cmdArgs, "--project", config.Project)
 	}
 
-	// Add the rest of the command: push, package-type, registry
-	if includeFileAndVersion {
-		// For generic packages, include file path
-		cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry, filePath)
-	} else {
-		// For other package types, don't include file path
-		cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry)
-	}
+	// Add the rest of the command: push, package-type, registry, filepath
+	// All package types need the file path to know what to push
+	cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry, filePath)
 
 	// Add other required flags
-	cmdArgs = append(cmdArgs, "--name", artifactName)
 	if includeFileAndVersion {
+		// Only generic packages need explicit name and version
+		cmdArgs = append(cmdArgs, "--name", artifactName)
 		cmdArgs = append(cmdArgs, "--version", version)
 	}
 	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
@@ -389,7 +433,7 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
 	}
 
-	return cmdArgs
+	return cmdArgs, nil
 }
 
 func getHarnessBin() string {
@@ -403,19 +447,7 @@ func getHarnessBin() string {
 
 // executeCommand executes a Harness CLI command
 func executeCommand(cmdArgs []string, operation string) error {
-	// Create a masked version of the command for logging
-	maskedArgs := make([]string, len(cmdArgs))
-	copy(maskedArgs, cmdArgs)
-
-	// Mask the token value
-	for i, arg := range maskedArgs {
-		if arg == "--token" && i+1 < len(maskedArgs) {
-			maskedArgs[i+1] = "***MASKED***"
-			break
-		}
-	}
-
-	cmdStr := strings.Join(maskedArgs, " ")
+	cmdStr := strings.Join(cmdArgs, " ")
 	logrus.Printf("Executing command: %s", cmdStr)
 
 	// Execute command directly without shell to avoid argument parsing issues
@@ -440,18 +472,6 @@ func executeCommand(cmdArgs []string, operation string) error {
 func trace(cmd *exec.Cmd) {
 	// Only show trace in debug mode to reduce noise
 	if logrus.GetLevel() >= logrus.DebugLevel {
-		// Create a masked version of the command for tracing
-		maskedArgs := make([]string, len(cmd.Args))
-		copy(maskedArgs, cmd.Args)
-
-		// Mask the token value
-		for i, arg := range maskedArgs {
-			if arg == "--token" && i+1 < len(maskedArgs) {
-				maskedArgs[i+1] = "***MASKED***"
-				break
-			}
-		}
-
-		fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(maskedArgs, " "))
+		fmt.Fprintf(os.Stdout, "+ %s\n", strings.Join(cmd.Args, " "))
 	}
 }

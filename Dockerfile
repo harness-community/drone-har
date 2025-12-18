@@ -13,7 +13,7 @@ FROM golang:1.24-alpine AS hc-builder
 RUN apk add --no-cache git
 WORKDIR /hc
 RUN git clone https://github.com/harness/harness-cli.git . && \
-    git checkout 69ffb0ead958ba93d69accaaf16630178439bd94
+    git checkout baa7fbd531696b91a7df0bb104806455a3924e9d
 RUN CGO_ENABLED=0 go build -o hc ./cmd/hc
 
 FROM alpine:latest

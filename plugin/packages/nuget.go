@@ -32,9 +32,6 @@ func (h *NuGetHandler) Validate(config Config) error {
 	if config.Source == "" {
 		return fmt.Errorf("source file path must be set")
 	}
-	if config.Name == "" {
-		return fmt.Errorf("artifact name must be set")
-	}
 	if config.Token == "" {
 		return fmt.Errorf("authentication token must be set")
 	}
@@ -75,7 +72,10 @@ func (h *NuGetHandler) Push(ctx context.Context, config Config) error {
 // pushSingleFile handles pushing a single file for NuGet packages
 func (h *NuGetHandler) pushSingleFile(config Config, filePath, artifactName string) error {
 	// Build command using shared helper (no file path and version in command for NuGet)
-	cmdArgs := buildPushCommand(NuGet, config, "", filePath, artifactName, false)
+	cmdArgs, err := buildPushCommand(NuGet, config, "", filePath, artifactName, false)
+	if err != nil {
+		return err
+	}
 
 	return executeCommand(cmdArgs, fmt.Sprintf("push NuGet artifact '%s' to registry '%s'", artifactName, config.Registry))
 }

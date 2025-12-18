@@ -19,6 +19,7 @@ const (
 	Go      PackageType = "GO"
 	NuGet   PackageType = "NUGET"
 	Maven   PackageType = "MAVEN"
+	Conda   PackageType = "CONDA"
 )
 
 // Config holds the common configuration for all package handlers

@@ -32,9 +32,6 @@ func (h *RPMHandler) Validate(config Config) error {
 	if config.Source == "" {
 		return fmt.Errorf("source file path must be set")
 	}
-	if config.Name == "" {
-		return fmt.Errorf("artifact name must be set")
-	}
 	if config.Token == "" {
 		return fmt.Errorf("authentication token must be set")
 	}
@@ -75,7 +72,10 @@ func (h *RPMHandler) Push(ctx context.Context, config Config) error {
 // pushSingleFile handles pushing a single file for RPM packages
 func (h *RPMHandler) pushSingleFile(config Config, filePath, artifactName string) error {
 	// Build command using shared helper (no file path and version in command for RPM)
-	cmdArgs := buildPushCommand(RPM, config, "", filePath, artifactName, false)
+	cmdArgs, err := buildPushCommand(RPM, config, "", filePath, artifactName, false)
+	if err != nil {
+		return err
+	}
 
 	return executeCommand(cmdArgs, fmt.Sprintf("push RPM artifact '%s' to registry '%s'", artifactName, config.Registry))
 }

@@ -32,9 +32,6 @@ func (h *MavenHandler) Validate(config Config) error {
 	if config.Source == "" {
 		return fmt.Errorf("source file path must be set")
 	}
-	if config.Name == "" {
-		return fmt.Errorf("artifact name must be set")
-	}
 	if config.Token == "" {
 		return fmt.Errorf("authentication token must be set")
 	}
@@ -70,7 +67,10 @@ func (h *MavenHandler) Push(ctx context.Context, config Config) error {
 // pushSingleFile handles pushing a single file for Maven packages
 func (h *MavenHandler) pushSingleFile(config Config, filePath, artifactName string) error {
 	// Build command using shared helper (no file path and version in command for Maven)
-	cmdArgs := buildPushCommand(Maven, config, "", filePath, artifactName, false)
+	cmdArgs, err := buildPushCommand(Maven, config, "", filePath, artifactName, false)
+	if err != nil {
+		return err
+	}
 
 	return executeCommand(cmdArgs, fmt.Sprintf("push Maven artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
