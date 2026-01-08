@@ -15,6 +15,7 @@ const (
 	Generic PackageType = "GENERIC"
 	NPM     PackageType = "NPM"
 	Dart    PackageType = "DART"
+	Composer PackageType = "COMPOSER"
 	RPM     PackageType = "RPM"
 	Python  PackageType = "PYTHON"
 	Go      PackageType = "GO"

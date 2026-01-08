@@ -116,6 +116,11 @@ func Exec(ctx context.Context, args Args) error {
 
 // argsToConfig converts Args to packages.Config
 func argsToConfig(args Args) packages.Config {
+	registry := strings.TrimSpace(args.Registry)
+	if idx := strings.LastIndex(registry, "."); idx != -1 {
+		registry = registry[idx+1:]
+	}
+
 	return packages.Config{
 		// Authentication
 		Token:   args.Token,
@@ -126,7 +131,7 @@ func argsToConfig(args Args) packages.Config {
 		PkgURL:  args.PkgURL,
 
 		// Registry and artifact details
-		Registry:    args.Registry,
+		Registry:    registry,
 		Name:        args.Name,
 		Version:     args.Version,
 		Description: args.Description,
