@@ -17,6 +17,7 @@ const (
 	RPM     PackageType = "RPM"
 	Python  PackageType = "PYTHON"
 	Go      PackageType = "GO"
+	Cargo   PackageType = "CARGO"
 	NuGet   PackageType = "NUGET"
 	Maven   PackageType = "MAVEN"
 	Conda   PackageType = "CONDA"

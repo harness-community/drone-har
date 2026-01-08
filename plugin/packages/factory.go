@@ -25,6 +25,7 @@ func NewHandlerFactory() *HandlerFactory {
 	factory.registerHandler(NewNPMHandler())
 	factory.registerHandler(NewPythonHandler())
 	factory.registerHandler(NewGoHandler())
+	factory.registerHandler(NewCargoHandler())
 	factory.registerHandler(NewRPMHandler())
 	factory.registerHandler(NewNuGetHandler())
 	factory.registerHandler(NewMavenHandler())
@@ -76,7 +77,7 @@ func (f *HandlerFactory) IsSupported(packageType string) bool {
 // GetImplementedTypes returns only the package types that are fully implemented
 func (f *HandlerFactory) GetImplementedTypes() []PackageType {
 	// All package types now have push functionality implemented
-	return []PackageType{Generic, NPM, RPM, Python, Go, NuGet, Maven, Conda}
+	return []PackageType{Generic, NPM, RPM, Python, Go, Cargo, NuGet, Maven, Conda}
 }
 
 // GetPlannedTypes returns the package types that are planned but not yet implemented
