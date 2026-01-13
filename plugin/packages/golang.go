@@ -32,6 +32,9 @@ func (h *GoHandler) Validate(config Config) error {
 	if config.Source == "" {
 		return fmt.Errorf("source file path must be set")
 	}
+	if config.Version == "" {
+		return fmt.Errorf("package version must be set")
+	}
 	if config.Token == "" {
 		return fmt.Errorf("authentication token must be set")
 	}
@@ -71,6 +74,8 @@ func (h *GoHandler) pushSingleFile(config Config, filePath, artifactName string)
 	if err != nil {
 		return err
 	}
+
+	cmdArgs = append(cmdArgs, "--version", config.Version)
 
 	return executeCommand(cmdArgs, fmt.Sprintf("push Go artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
