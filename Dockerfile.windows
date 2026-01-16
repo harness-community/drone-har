@@ -13,7 +13,7 @@ FROM golang:1.24-windowsservercore-ltsc2022 AS hc-downloader
 
 WORKDIR C:/hc
 RUN git clone https://github.com/harness/harness-cli.git .
-RUN git checkout 1a04b9e9f293120dd8e5d1002719bc2272582141
+RUN git checkout e2d95494930dad1b1d57e9e2a42a1e5261e1bc11
 RUN go build -o hc.exe ./cmd/hc
 
 # Final runtime image (servercore is safer than nanoserver)
