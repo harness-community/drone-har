@@ -32,6 +32,9 @@ func (h *MavenHandler) Validate(config Config) error {
 	if config.Source == "" {
 		return fmt.Errorf("source file path must be set")
 	}
+	if config.PomFile == "" {
+		return fmt.Errorf("pom file path must be set")
+	}
 	if config.Token == "" {
 		return fmt.Errorf("authentication token must be set")
 	}
@@ -57,6 +60,12 @@ func (h *MavenHandler) Push(ctx context.Context, config Config) error {
 	_, err := os.Stat(config.Source)
 	if err != nil {
 		return fmt.Errorf("failed to access source path '%s': %w", config.Source, err)
+	}
+
+	// Check if pom file path exists
+	_, err = os.Stat(config.PomFile)
+	if err != nil {
+		return fmt.Errorf("failed to access pom file path '%s': %w", config.PomFile, err)
 	}
 
 	logrus.Printf("Source path: %s", config.Source)

@@ -423,6 +423,9 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		cmdArgs = append(cmdArgs, "--name", artifactName)
 		cmdArgs = append(cmdArgs, "--version", version)
 	}
+	if packageType == Maven {
+		cmdArgs = append(cmdArgs, "--pom-file", config.PomFile)
+	}
 	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
 
 	// Add remaining optional flags
