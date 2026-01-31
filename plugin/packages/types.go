@@ -41,6 +41,7 @@ type Config struct {
 	Version     string
 	Description string
 	Filename    string
+	PomFile     string
 
 	// Operation details
 	Source      string

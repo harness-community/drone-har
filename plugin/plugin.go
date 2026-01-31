@@ -48,6 +48,7 @@ type Args struct {
 	Description string `envconfig:"PLUGIN_DESCRIPTION"`
 	Filename    string `envconfig:"PLUGIN_FILENAME"`
 	PkgURL      string `envconfig:"PLUGIN_PKG_URL"`
+	PomFile     string `envconfig:"PLUGIN_POM_FILE"`
 
 	// Package type for push operations
 	PackageType string `envconfig:"PLUGIN_PACKAGE_TYPE"`
@@ -136,6 +137,7 @@ func argsToConfig(args Args) packages.Config {
 		Version:     args.Version,
 		Description: args.Description,
 		Filename:    args.Filename,
+		PomFile:     args.PomFile,
 
 		// Operation details
 		Source:      args.Source,
