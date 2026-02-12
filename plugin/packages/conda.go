@@ -7,7 +7,6 @@ package packages
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -52,22 +51,7 @@ func (h *CondaHandler) Push(ctx context.Context, config Config) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Check if source exists
-	if _, err := os.Stat(config.Source); os.IsNotExist(err) {
-		return fmt.Errorf("source file does not exist: %s", config.Source)
-	}
-
-	fileInfo, err := os.Stat(config.Source)
-	if err != nil {
-		return fmt.Errorf("failed to get file info: %w", err)
-	}
-
-	if fileInfo.IsDir() {
-		return fmt.Errorf("directories are not supported, only single files can be pushed. Source '%s' is a directory", config.Source)
-	}
-
 	logrus.Printf("Source path: %s", config.Source)
-	logrus.Printf("Detected file, calling pushSingleFile")
 
 	return h.pushSingleFile(config, config.Source, config.Name)
 }

@@ -7,7 +7,6 @@ package packages
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -54,12 +53,6 @@ func (h *GoHandler) Push(ctx context.Context, config Config) error {
 	// Validate configuration
 	if err := h.Validate(config); err != nil {
 		return err
-	}
-
-	// Check if source path exists
-	_, err := os.Stat(config.Source)
-	if err != nil {
-		return fmt.Errorf("failed to access source path '%s': %w", config.Source, err)
 	}
 
 	logrus.Printf("Source path: %s", config.Source)

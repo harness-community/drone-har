@@ -7,7 +7,6 @@ package packages
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -53,18 +52,7 @@ func (h *ComposerHandler) Push(ctx context.Context, config Config) error {
 		return err
 	}
 
-	// Check if source is a file (only single files allowed)
-	fileInfo, err := os.Stat(config.Source)
-	if err != nil {
-		return fmt.Errorf("failed to access source path '%s': %w", config.Source, err)
-	}
-
-	if fileInfo.IsDir() {
-		return fmt.Errorf("directories are not supported, only single files can be pushed. Source '%s' is a directory", config.Source)
-	}
-
 	logrus.Printf("Source path: %s", config.Source)
-	logrus.Printf("Detected file, calling pushSingleFile")
 
 	return h.pushSingleFile(config, config.Source, config.Name)
 }
