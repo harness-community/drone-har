@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 \
 ########################
 # Harness CLI build
 ########################
-FROM golang:1.24-alpine AS hc-builder
+FROM golang:1.25-alpine AS hc-builder
 ARG TARGETOS
 ARG TARGETARCH
 
