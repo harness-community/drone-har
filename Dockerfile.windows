@@ -1,5 +1,5 @@
 # Build har.exe
-FROM golang:1.24-windowsservercore-ltsc2022 AS builder
+FROM golang:1.25-windowsservercore-ltsc2022 AS builder
 
 WORKDIR C:/app
 COPY go.mod go.sum ./
