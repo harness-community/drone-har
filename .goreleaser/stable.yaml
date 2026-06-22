@@ -1,0 +1,41 @@
+version: 2
+
+project_name: drone-har
+
+git:
+  tag_sort: -version:refname
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: drone-har
+    main: .
+    binary: drone-har
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    hooks:
+      post:
+        - cmd: sh -c 'mkdir -p dist/release && zstd -19 -f "{{ .Path }}" -o "dist/release/plugin-{{ .Os }}-{{ .Arch }}.zst"'
+
+archives:
+  - id: default
+    formats:
+      - binary
+    name_template: "_skip-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  disable: true
+
+release:
+  disable: true
