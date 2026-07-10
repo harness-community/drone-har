@@ -28,7 +28,7 @@ RUN apk add --no-cache git
 WORKDIR /hc
 
 RUN git clone https://github.com/harness/harness-cli.git . && \
-    git checkout 3b5fe9389c155b74a0a271f6fe635f3538b99e30
+    git checkout 55180708bbcf9c8da38f9a66bba158170c13f1e4
 
 RUN CGO_ENABLED=0 \
     GOOS=$TARGETOS \
