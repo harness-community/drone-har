@@ -2,10 +2,14 @@
 FROM golang:1.24-windowsservercore-1809 AS builder
 
 WORKDIR C:/app
+
+# Copy files individually to avoid hcsshim ImportLayer bug on 1809
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+COPY main.go ./
+COPY plugin/ ./plugin/
+
 RUN go build -o drone-har.exe .
 
 # Download Harness CLI
