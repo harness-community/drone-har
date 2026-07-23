@@ -18,22 +18,17 @@ RUN CGO_ENABLED=0 \
     go build -o drone-har .
 
 ########################
-# Harness CLI build
+# Download Harness CLI
 ########################
-FROM golang:1.24-alpine AS hc-builder
-ARG TARGETOS
+FROM alpine:latest AS hc-downloader
+ARG TARGETOS=linux
 ARG TARGETARCH
 
-RUN apk add --no-cache git
+RUN apk add --no-cache curl tar
 WORKDIR /hc
 
-RUN git clone https://github.com/harness/harness-cli.git . && \
-    git checkout 98d70a602dc5f9902d0f373f82a143a8b640f7fb
-
-RUN CGO_ENABLED=0 \
-    GOOS=$TARGETOS \
-    GOARCH=$TARGETARCH \
-    go build -o hc ./cmd/hc
+RUN ARCH=$([ "$TARGETARCH" = "amd64" ] && echo "x86_64" || echo "$TARGETARCH") && \
+    curl -fsSL "https://github.com/harness/harness-cli/releases/download/v1.3.36/hc_1.3.36_${TARGETOS}_${ARCH}.tar.gz" | tar -xz
 
 ########################
 # Runtime image
@@ -41,7 +36,7 @@ RUN CGO_ENABLED=0 \
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
-COPY --from=hc-builder /hc/hc /usr/local/bin/hc
+COPY --from=hc-downloader /hc/hc /usr/local/bin/hc
 COPY --from=builder /app/drone-har /bin/har
 
 ENTRYPOINT ["/bin/har"]
