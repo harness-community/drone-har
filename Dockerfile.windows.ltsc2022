@@ -16,7 +16,7 @@ RUN git clone https://github.com/harness/harness-cli.git .
 RUN git checkout 98d70a602dc5f9902d0f373f82a143a8b640f7fb
 RUN go build -o hc.exe ./cmd/hc
 
-# Final runtime image (servercore is safer than nanoserver)
+# Final runtime image
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
 WORKDIR C:/bin
