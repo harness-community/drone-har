@@ -1,6 +1,6 @@
 module github.com/harness/drone-har
 
-go 1.25
+go 1.24
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
