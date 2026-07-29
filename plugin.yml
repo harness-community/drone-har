@@ -1,6 +1,6 @@
 deps:
   run:
-    - curl -fL https://github.com/harness/harness-cli/releases/latest/download/harness-cli-linux-amd64.tar.gz | tar -xz -C /usr/local/bin
+    - ver=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/harness/harness-cli/releases/latest | sed 's#.*/tag/v##'); arch=$([ "$(uname -m)" = "aarch64" ] && echo arm64 || echo x86_64); curl -fsSL "https://github.com/harness/harness-cli/releases/download/v${ver}/hc_${ver}_linux_${arch}.tar.gz" | tar -xz -C /usr/local/bin
 run:
   binary:
     source: https://github.com/harness/drone-har/releases/download/{{ release }}/plugin-{{ os }}-{{ arch }}.zst
