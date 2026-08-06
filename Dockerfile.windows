@@ -12,7 +12,7 @@ RUN go build -o drone-har.exe .
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS hc-downloader
 
 WORKDIR C:/hc
-RUN powershell -Command "Invoke-WebRequest -Uri 'https://github.com/harness/harness-cli/releases/download/v1.3.36/hc_1.3.36_windows_x86_64.tar.gz' -OutFile 'hc.tar.gz'"
+RUN powershell -Command "Invoke-WebRequest -Uri 'https://github.com/harness/harness-cli/releases/download/v1.3.40/hc_1.3.40_windows_x86_64.tar.gz' -OutFile 'hc.tar.gz'"
 RUN powershell -Command "tar -xzf hc.tar.gz"
 
 # Final runtime image

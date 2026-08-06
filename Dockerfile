@@ -28,7 +28,7 @@ RUN apk add --no-cache curl tar
 WORKDIR /hc
 
 RUN ARCH=$([ "$TARGETARCH" = "amd64" ] && echo "x86_64" || echo "$TARGETARCH") && \
-    curl -fsSL "https://github.com/harness/harness-cli/releases/download/v1.3.36/hc_1.3.36_${TARGETOS}_${ARCH}.tar.gz" | tar -xz
+    curl -fsSL "https://github.com/harness/harness-cli/releases/download/v1.3.40/hc_1.3.40_${TARGETOS}_${ARCH}.tar.gz" | tar -xz
 
 ########################
 # Runtime image
