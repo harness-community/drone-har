@@ -339,35 +339,34 @@ func (h *GenericHandler) pushSingleFile(config Config, version, filePath, custom
 
 // Helper functions
 
-// AuthConfig represents the Harness authentication configuration
+// AuthConfig represents the Harness authentication configuration expected by hc.
 type AuthConfig struct {
-	BaseURL   string `json:"base_url"`
-	Token     string `json:"token"`
-	AccountID string `json:"account_id"`
+	BaseURL     string `json:"base_url"`
+	Token       string `json:"token"`
+	AccountID   string `json:"account_id"`
+	RegistryURL string `json:"registry_url"`
 }
 
-// createAuthFile creates ~/.harness/auth.json with authentication details
+// createAuthFile creates ~/.harness/auth.json with authentication details.
+// Field names and values must match the format produced by `hc auth login`.
 func createAuthFile(config Config) error {
-	// Get home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Create .harness directory if it doesn't exist
 	harnessDir := filepath.Join(homeDir, ".harness")
 	if err := os.MkdirAll(harnessDir, 0755); err != nil {
 		return fmt.Errorf("failed to create .harness directory: %w", err)
 	}
 
-	// Prepare auth configuration
 	authConfig := AuthConfig{
-		BaseURL:   config.PkgURL,
-		Token:     fmt.Sprintf("CIManager %s", config.Token),
-		AccountID: config.Account,
+		BaseURL:     config.ApiURL,
+		Token:       fmt.Sprintf("CIManager %s", config.Token),
+		AccountID:   config.Account,
+		RegistryURL: config.PkgURL,
 	}
 
-	// Write auth.json file
 	authFile := filepath.Join(harnessDir, "auth.json")
 	authData, err := json.MarshalIndent(authConfig, "", "  ")
 	if err != nil {
@@ -420,6 +419,11 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	}
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
+	}
+
+	// Attach metadata if provided.
+	if config.Metadata != "" {
+		cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 	}
 
 	return cmdArgs, nil

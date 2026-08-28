@@ -47,6 +47,9 @@ type Config struct {
 	Source      string
 	Destination string
 	Retries     int
+
+	// Metadata to attach to the artifact after upload (key:value,... format).
+	Metadata string
 }
 
 // PackageHandler defines the interface that all package type handlers must implement
