@@ -1,6 +1,7 @@
-deps:
-  run:
-    - ver=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/harness/harness-cli/releases/latest | sed 's#.*/tag/v##'); arch=$([ "$(uname -m)" = "aarch64" ] && echo arm64 || echo x86_64); curl -fsSL "https://github.com/harness/harness-cli/releases/download/v${ver}/hc_${ver}_linux_${arch}.tar.gz" | tar -xz -C /usr/local/bin
+# No deps block: the plugin binary embeds the harness-cli version pinned in
+# HC_VERSION and unpacks it on first use, so there is nothing to install here.
+# That also means this works on macOS and Windows runners, which a shell-based
+# deps step did not.
 run:
   binary:
     source: https://github.com/harness/drone-har/releases/download/{{ release }}/plugin-{{ os }}-{{ arch }}.zst
