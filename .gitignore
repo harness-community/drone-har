@@ -39,6 +39,10 @@ Thumbs.db
 drone-har
 dist/
 
+# harness-cli archives embedded at build time (see scripts/fetch-hc.sh)
+plugin/packages/hcbin/*.tar.gz
+plugin/packages/hcbin/.version
+
 # Test files and temporary artifacts
 test-sample.txt
 registry_migration_*.txt

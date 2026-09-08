@@ -12,10 +12,14 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/harness/drone-har/plugin"
+	"github.com/harness/drone-har/plugin/packages"
 )
 
 func main() {
 	logrus.SetFormatter(new(formatter))
+
+	// Tell the package handlers which harness-cli version this build expects.
+	packages.SetPinnedHCVersion(hcVersionFile)
 
 	var args plugin.Args
 	if err := envconfig.Process("", &args); err != nil {

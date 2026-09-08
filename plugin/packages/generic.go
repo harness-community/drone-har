@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -107,7 +106,11 @@ func (h *GenericHandler) Pull(ctx context.Context, config Config) error {
 	packagePath := fmt.Sprintf("%s/%s/%s", config.Name, config.Version, config.Filename)
 
 	// Build Harness CLI command
-	cmdArgs := []string{getHarnessBin(), "artifact", "pull", string(Generic), config.Registry, packagePath, config.Destination}
+	harnessBin, err := getHarnessBin()
+	if err != nil {
+		return err
+	}
+	cmdArgs := []string{harnessBin, "artifact", "pull", string(Generic), config.Registry, packagePath, config.Destination}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--token", config.Token)
@@ -149,9 +152,14 @@ func (h *GenericHandler) Get(ctx context.Context, config Config) error {
 		return fmt.Errorf("account ID must be set")
 	}
 
+	harnessBin, err := getHarnessBin()
+	if err != nil {
+		return err
+	}
+
 	// Use 'hc artifact get' command with name as positional arg and registry as flag
 	cmd := []string{
-		getHarnessBin(),
+		harnessBin,
 		"artifact", "get", config.Name,
 	}
 
@@ -192,8 +200,13 @@ func (h *GenericHandler) Delete(ctx context.Context, config Config) error {
 		return fmt.Errorf("account ID must be set")
 	}
 
+	harnessBin, err := getHarnessBin()
+	if err != nil {
+		return err
+	}
+
 	// Build Harness CLI command - use 'hc artifact delete' with name as argument and registry as flag
-	cmdArgs := []string{getHarnessBin(), "artifact", "delete", config.Name}
+	cmdArgs := []string{harnessBin, "artifact", "delete", config.Name}
 
 	// Add required flags
 	cmdArgs = append(cmdArgs, "--registry", config.Registry)
@@ -388,7 +401,12 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		return nil, fmt.Errorf("failed to create auth file: %w", err)
 	}
 
-	cmdArgs := []string{getHarnessBin(), "artifact"}
+	harnessBin, err := getHarnessBin()
+	if err != nil {
+		return nil, err
+	}
+
+	cmdArgs := []string{harnessBin, "artifact"}
 
 	// Add context flags (no token needed as it's in auth.json)
 	if config.Org != "" {
@@ -427,15 +445,6 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	}
 
 	return cmdArgs, nil
-}
-
-func getHarnessBin() string {
-	if runtime.GOOS == "windows" {
-		if _, err := os.Stat("C:/bin/hc.exe"); err == nil {
-			return "C:/bin/hc.exe"
-		}
-	}
-	return "hc"
 }
 
 // executeCommand executes a Harness CLI command

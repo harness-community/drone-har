@@ -8,6 +8,10 @@ git:
 before:
   hooks:
     - go mod tidy
+    # Fetch the harness-cli builds that get embedded into each binary. Must run
+    # before the builds, and for every platform, since one build tree feeds all
+    # of them.
+    - ./scripts/fetch-hc.sh
 
 builds:
   - id: drone-har
