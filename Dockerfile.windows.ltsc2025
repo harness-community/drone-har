@@ -1,3 +1,12 @@
+# Download Harness CLI
+FROM mcr.microsoft.com/windows/servercore:ltsc2025 AS hc-downloader
+
+WORKDIR C:/hc
+
+# HC_VERSION is the single source of truth for the pinned harness-cli version.
+COPY HC_VERSION .
+RUN powershell -Command "$ver = (Get-Content HC_VERSION).Trim(); Invoke-WebRequest -Uri ('https://github.com/harness/harness-cli/releases/download/v' + $ver + '/hc_' + $ver + '_windows_x86_64.tar.gz') -OutFile 'hc_windows_amd64.tar.gz'"
+
 # Build har.exe
 FROM golang:1.24-windowsservercore-ltsc2025 AS builder
 
@@ -6,21 +15,16 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+# The plugin embeds harness-cli, so the archive has to be in place before the
+# build. The exe that comes out needs no hc on disk or at runtime.
+COPY --from=hc-downloader C:/hc/hc_windows_amd64.tar.gz C:/app/plugin/packages/hcbin/
 RUN go build -o drone-har.exe .
-
-# Download Harness CLI
-FROM mcr.microsoft.com/windows/servercore:ltsc2025 AS hc-downloader
-
-WORKDIR C:/hc
-RUN powershell -Command "Invoke-WebRequest -Uri 'https://github.com/harness/harness-cli/releases/download/v1.3.36/hc_1.3.36_windows_x86_64.tar.gz' -OutFile 'hc.tar.gz'"
-RUN powershell -Command "tar -xzf hc.tar.gz"
 
 # Final runtime image
 FROM mcr.microsoft.com/windows/servercore:ltsc2025
 
 WORKDIR C:/bin
 COPY --from=builder C:/app/drone-har.exe C:/bin/har.exe
-COPY --from=hc-downloader C:/hc/hc.exe C:/bin/hc.exe
 
 ENV PATH="C:\\bin;${PATH}"
 

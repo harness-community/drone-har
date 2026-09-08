@@ -10,6 +10,11 @@
 drone-har
 *.exe
 
+# harness-cli archives: the build fetches the one it needs into this directory,
+# so a developer's local copies must not be shipped in the build context
+plugin/packages/hcbin/*.tar.gz
+plugin/packages/hcbin/.version
+
 # Documentation
 README.md
 TESTING.md
