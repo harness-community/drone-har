@@ -15,6 +15,49 @@ import (
 	"testing"
 )
 
+func TestFormatToken(t *testing.T) {
+	tests := []struct {
+		name  string
+		token string
+		want  string
+	}{
+		{
+			name:  "PAT passed as-is",
+			token: "pat.account.sometokenbytes",
+			want:  "pat.account.sometokenbytes",
+		},
+		{
+			name:  "SAT passed as-is",
+			token: "sat.account.sometokenbytes",
+			want:  "sat.account.sometokenbytes",
+		},
+		{
+			name:  "ST passed as-is",
+			token: "st.account.sometokenbytes",
+			want:  "st.account.sometokenbytes",
+		},
+		{
+			name:  "JWT gets CIManager prefix",
+			token: "eyJhbGciOiJIUzI1NiJ9.payload.sig",
+			want:  "CIManager eyJhbGciOiJIUzI1NiJ9.payload.sig",
+		},
+		{
+			name:  "unknown token type gets CIManager prefix",
+			token: "abc123xyz",
+			want:  "CIManager abc123xyz",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := formatToken(test.token)
+			if got != test.want {
+				t.Errorf("formatToken(%q) = %q, want %q", test.token, got, test.want)
+			}
+		})
+	}
+}
+
 func TestParseHCVersion(t *testing.T) {
 	tests := []struct {
 		name    string
