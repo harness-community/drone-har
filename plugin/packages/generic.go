@@ -373,8 +373,16 @@ func createAuthFile(config Config) error {
 		return fmt.Errorf("failed to create .harness directory: %w", err)
 	}
 
+	// hc requires base_url to be non-empty or it exits with "Not logged in".
+	// When PLUGIN_API_URL is not set we fall back to PkgURL: the push path
+	// uses PkgURL directly (via --pkg-url flag) so APIBaseURL is only needed
+	// to satisfy the login check, not for the actual registry calls.
+	baseURL := config.ApiURL
+	if baseURL == "" {
+		baseURL = config.PkgURL
+	}
 	authConfig := AuthConfig{
-		BaseURL:     config.ApiURL,
+		BaseURL:     baseURL,
 		Token:       fmt.Sprintf("CIManager %s", config.Token),
 		AccountID:   config.Account,
 		RegistryURL: config.PkgURL,
