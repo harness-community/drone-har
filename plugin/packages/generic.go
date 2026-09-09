@@ -360,6 +360,18 @@ type AuthConfig struct {
 	RegistryURL string `json:"registry_url"`
 }
 
+// formatToken returns the token in the format hc expects.
+// PAT, SAT, and ST tokens are API keys that hc accepts as-is.
+// All other tokens (e.g. JWT build tokens) are prefixed with "CIManager ".
+func formatToken(token string) string {
+	for _, prefix := range []string{"pat.", "sat.", "st."} {
+		if strings.HasPrefix(token, prefix) {
+			return token
+		}
+	}
+	return "CIManager " + token
+}
+
 // createAuthFile creates ~/.harness/auth.json with authentication details.
 // Field names and values must match the format produced by `hc auth login`.
 func createAuthFile(config Config) error {
@@ -383,7 +395,7 @@ func createAuthFile(config Config) error {
 	}
 	authConfig := AuthConfig{
 		BaseURL:     baseURL,
-		Token:       fmt.Sprintf("CIManager %s", config.Token),
+		Token:       formatToken(config.Token),
 		AccountID:   config.Account,
 		RegistryURL: config.PkgURL,
 	}
@@ -445,11 +457,6 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	}
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
-	}
-
-	// Attach metadata if provided.
-	if config.Metadata != "" {
-		cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 	}
 
 	return cmdArgs, nil
