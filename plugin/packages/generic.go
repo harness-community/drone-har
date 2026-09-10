@@ -454,6 +454,9 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	// Add remaining optional flags
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
+		if config.Metadata != "" {
+			cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
+		}
 	}
 	if config.Filename != "" {
 		cmdArgs = append(cmdArgs, "--filename", config.Filename)
