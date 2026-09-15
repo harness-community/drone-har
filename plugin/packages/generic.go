@@ -454,7 +454,9 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	// Add remaining optional flags
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
-		if config.Metadata != "" {
+		// Skip metadata for local development URLs — the metadata API is not
+		// available on local instances.
+		if config.Metadata != "" && !strings.Contains(config.ApiURL, "localhost") {
 			cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 		}
 	}
