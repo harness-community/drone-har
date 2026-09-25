@@ -371,3 +371,61 @@ func TestExec_DeleteCommand_MissingName(t *testing.T) {
 		t.Errorf("Expected 'artifact name must be set', got '%s'", err.Error())
 	}
 }
+
+func TestArgsToConfig_APIURLFallsBackToPkgURL(t *testing.T) {
+	tests := []struct {
+		name       string
+		apiURL     string
+		pkgURL     string
+		wantAPIURL string
+	}{
+		{
+			name:       "loopback api url falls back to pkg url",
+			apiURL:     "http://localhost:3000",
+			pkgURL:     "https://pkg.harness.io",
+			wantAPIURL: "https://pkg.harness.io",
+		},
+		{
+			name:       "loopback ip api url falls back to pkg url",
+			apiURL:     "http://127.0.0.1:3000",
+			pkgURL:     "https://pkg.harness.io",
+			wantAPIURL: "https://pkg.harness.io",
+		},
+		{
+			name:       "local dev keeps loopback api url",
+			apiURL:     "http://localhost:3000",
+			pkgURL:     "http://localhost:3000",
+			wantAPIURL: "http://localhost:3000",
+		},
+		{
+			name:       "loopback api url with no pkg url is unchanged",
+			apiURL:     "http://localhost:3000",
+			pkgURL:     "",
+			wantAPIURL: "http://localhost:3000",
+		},
+		{
+			name:       "remote api url is unchanged",
+			apiURL:     "https://app.harness.io",
+			pkgURL:     "https://pkg.harness.io",
+			wantAPIURL: "https://app.harness.io",
+		},
+		{
+			name:       "empty api url stays empty",
+			apiURL:     "",
+			pkgURL:     "https://pkg.harness.io",
+			wantAPIURL: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := argsToConfig(Args{ApiURL: tt.apiURL, PkgURL: tt.pkgURL})
+			if config.ApiURL != tt.wantAPIURL {
+				t.Errorf("ApiURL = %q, want %q", config.ApiURL, tt.wantAPIURL)
+			}
+			if config.PkgURL != tt.pkgURL {
+				t.Errorf("PkgURL = %q, want %q", config.PkgURL, tt.pkgURL)
+			}
+		})
+	}
+}

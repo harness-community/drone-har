@@ -414,6 +414,12 @@ func createAuthFile(config Config) error {
 	return nil
 }
 
+// isLocalAPIURL reports whether the API URL points at a local instance.
+func isLocalAPIURL(apiURL string) bool {
+	u := strings.ToLower(apiURL)
+	return strings.Contains(u, "localhost") || strings.Contains(u, "127.0.0.1")
+}
+
 // buildPushCommand builds a common push command for any package type
 func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) ([]string, error) {
 	// Create auth file first
@@ -456,7 +462,7 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
 		// Skip metadata for local development URLs — the metadata API is not
 		// available on local instances.
-		if config.Metadata != "" && !strings.Contains(config.ApiURL, "localhost") {
+		if config.Metadata != "" && !isLocalAPIURL(config.ApiURL) {
 			cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 		}
 	}
