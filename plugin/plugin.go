@@ -132,13 +132,22 @@ func argsToConfig(args Args) packages.Config {
 		registry = registry[idx+1:]
 	}
 
+	// On some prod clusters the API and package URLs are the same host, and the
+	// API URL reaches the plugin as a loopback address that is not routable from
+	// the step container. Fall back to PkgURL in that case.
+	apiURL := args.ApiURL
+	if isLoopbackURL(apiURL) && args.PkgURL != "" && !isLoopbackURL(args.PkgURL) {
+		logrus.Printf("PLUGIN_API_URL %q is a loopback address, using PLUGIN_PKG_URL %q instead", apiURL, args.PkgURL)
+		apiURL = args.PkgURL
+	}
+
 	return packages.Config{
 		// Authentication
 		Token:   args.Token,
 		Account: args.Account,
 		Org:     args.Org,
 		Project: args.Project,
-		ApiURL:  args.ApiURL,
+		ApiURL:  apiURL,
 		PkgURL:  args.PkgURL,
 
 		// Registry and artifact details
@@ -156,6 +165,12 @@ func argsToConfig(args Args) packages.Config {
 
 		Metadata: buildMetadata(),
 	}
+}
+
+// isLoopbackURL reports whether the URL points at the local machine.
+func isLoopbackURL(url string) bool {
+	u := strings.ToLower(url)
+	return strings.Contains(u, "localhost") || strings.Contains(u, "127.0.0.1")
 }
 
 // buildMetadata collects Harness CI pipeline env vars and returns a
