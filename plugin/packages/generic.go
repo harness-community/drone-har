@@ -420,6 +420,21 @@ func isLocalAPIURL(apiURL string) bool {
 	return strings.Contains(u, "localhost") || strings.Contains(u, "127.0.0.1")
 }
 
+// metadataUnsupportedTypes lists package types that do not support attaching
+// metadata to the artifact after upload.
+var metadataUnsupportedTypes = map[PackageType]bool{
+	Conda:    true,
+	Composer: true,
+	NuGet:    true,
+	RPM:      true,
+}
+
+// supportsMetadata reports whether the given package type supports the
+// --metadata flag.
+func supportsMetadata(packageType PackageType) bool {
+	return !metadataUnsupportedTypes[packageType]
+}
+
 // buildPushCommand builds a common push command for any package type
 func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) ([]string, error) {
 	// Create auth file first
@@ -461,8 +476,9 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 	if config.ApiURL != "" {
 		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
 		// Skip metadata for local development URLs — the metadata API is not
-		// available on local instances.
-		if config.Metadata != "" && !isLocalAPIURL(config.ApiURL) {
+		// available on local instances — and for package types that do not
+		// support metadata.
+		if config.Metadata != "" && !isLocalAPIURL(config.ApiURL) && supportsMetadata(packageType) {
 			cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 		}
 	}
