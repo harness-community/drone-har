@@ -116,8 +116,6 @@ func Exec(ctx context.Context, args Args) error {
 		if err := handler.Push(ctx, config); err != nil {
 			return err
 		}
-		// CI-23036: publish uploaded-file metadata to PLUGIN_ARTIFACT_FILE for
-		// CI manager (soft-fail — never fails the step).
 		if entries := collectArtifactEntries(config, packageType); len(entries) > 0 {
 			writeArtifactFile(entries)
 		}

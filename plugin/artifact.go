@@ -18,9 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Wire format written to PLUGIN_ARTIFACT_FILE (CI-23036). lite-engine forwards
-// this file to CI manager, which surfaces the entries in step outputs, the
-// artifacts tab and the artifactDetails MongoDB collection.
 type artifactFile struct {
 	Kind string           `json:"kind"`
 	Data artifactFileData `json:"data"`
@@ -42,9 +39,6 @@ type fileArtifactEntry struct {
 	PackageType string `json:"packageType,omitempty"`
 }
 
-// writeArtifactFile writes the uploaded file metadata to the path in
-// PLUGIN_ARTIFACT_FILE so that CI manager can pick it up and store it.
-// All errors are soft-failed with a warning so the step is never failed.
 func writeArtifactFile(entries []fileArtifactEntry) {
 	path := os.Getenv("PLUGIN_ARTIFACT_FILE")
 	if path == "" {
@@ -68,9 +62,6 @@ func writeArtifactFile(entries []fileArtifactEntry) {
 	}
 }
 
-// computeFileSHA256 returns "sha256:<hex>" for the file at path.
-// The digest is always computed from the local source file (not provider
-// output). Returns an empty string on error (soft-fail).
 func computeFileSHA256(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
@@ -111,7 +102,7 @@ func collectArtifactEntries(config packages.Config, packageType string) []fileAr
 	pkgHost := strings.TrimRight(config.PkgURL, "/")
 	var entries []fileArtifactEntry
 	for _, f := range files {
-		filePath := filePathInPackage(config, f, sourceRoot)
+		filePath := filePathInPackage(f, sourceRoot)
 		entries = append(entries, fileArtifactEntry{
 			Name:        filepath.Base(f),
 			URL:         harFileURL(pkgHost, config.Account, config.Registry, config.Name, version, filePath),
@@ -130,9 +121,6 @@ func harFileURL(pkgHost, account, registry, packageName, version, filePath strin
 	return strings.Join([]string{pkgHost, "pkg", account, registry, "files", packageName, version, escapeFilePath(filePath)}, "/")
 }
 
-// escapeFilePath percent-encodes each segment of a package-relative file path so
-// that names containing spaces or URL-reserved characters yield a valid URL.
-// Separators are preserved; filePath itself is still reported unescaped.
 func escapeFilePath(filePath string) string {
 	segments := strings.Split(filePath, "/")
 	for i, segment := range segments {
@@ -141,10 +129,10 @@ func escapeFilePath(filePath string) string {
 	return strings.Join(segments, "/")
 }
 
-func filePathInPackage(config packages.Config, file, sourceRoot string) string {
-	if config.Filename != "" && sourceRoot == "" {
-		return strings.TrimLeft(filepath.ToSlash(config.Filename), "/")
-	}
+// There is no rename case — hc has
+// no --filename flag, and a push with PLUGIN_FILENAME set fails at hc before
+// metadata is written.
+func filePathInPackage(file, sourceRoot string) string {
 	if sourceRoot != "" {
 		if rel, err := filepath.Rel(sourceRoot, file); err == nil && rel != "" && rel != "." {
 			return filepath.ToSlash(filepath.Join(filepath.Base(sourceRoot), rel))

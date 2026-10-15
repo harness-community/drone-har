@@ -179,43 +179,32 @@ func TestHarFileURL_EscapesReservedCharacters(t *testing.T) {
 func TestFilePathInPackage(t *testing.T) {
 	cases := []struct {
 		name       string
-		config     packages.Config
 		file       string
 		sourceRoot string
 		want       string
 	}{
 		{
 			name:       "single file uses basename",
-			config:     packages.Config{},
 			file:       "/tmp/build/app.jar",
 			sourceRoot: "",
 			want:       "app.jar",
 		},
 		{
-			name:       "filename override for single file",
-			config:     packages.Config{Filename: "renamed.jar"},
-			file:       "/tmp/build/app.jar",
-			sourceRoot: "",
-			want:       "renamed.jar",
-		},
-		{
 			name:       "directory upload prefixes source dir base name",
-			config:     packages.Config{},
 			file:       "/tmp/build/sub/deep.jar",
 			sourceRoot: "/tmp/build",
 			want:       "build/sub/deep.jar",
 		},
 		{
-			name:       "filename ignored for directory upload",
-			config:     packages.Config{Filename: "renamed.jar"},
-			file:       "/tmp/build/sub/deep.jar",
+			name:       "directory upload with nested path",
+			file:       "/tmp/build/a/b/c/deep.jar",
 			sourceRoot: "/tmp/build",
-			want:       "build/sub/deep.jar",
+			want:       "build/a/b/c/deep.jar",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := filePathInPackage(tc.config, tc.file, tc.sourceRoot); got != tc.want {
+			if got := filePathInPackage(tc.file, tc.sourceRoot); got != tc.want {
 				t.Errorf("filePath: want %q, got %q", tc.want, got)
 			}
 		})
@@ -394,7 +383,10 @@ func TestCollectArtifactEntries_Directory(t *testing.T) {
 	}
 }
 
-func TestCollectArtifactEntries_FilenameOverride(t *testing.T) {
+func TestCollectArtifactEntries_FilenameIgnored(t *testing.T) {
+	// hc has no --filename flag (a push with PLUGIN_FILENAME set fails at hc
+	// before metadata is written), so metadata always reflects the stored
+	// object path: the local file's basename.
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.jar")
 	writeFile(t, path, "data")
@@ -405,10 +397,10 @@ func TestCollectArtifactEntries_FilenameOverride(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("want 1 entry, got %d", len(entries))
 	}
-	if entries[0].FilePath != "renamed.jar" {
-		t.Errorf("filePath: want renamed.jar, got %q", entries[0].FilePath)
+	if entries[0].FilePath != "app.jar" {
+		t.Errorf("filePath: want app.jar, got %q", entries[0].FilePath)
 	}
-	wantURL := "https://pkg.harness.io/pkg/acc123/my-registry/files/my-package/1.0.0/renamed.jar"
+	wantURL := "https://pkg.harness.io/pkg/acc123/my-registry/files/my-package/1.0.0/app.jar"
 	if entries[0].URL != wantURL {
 		t.Errorf("url: want %q, got %q", wantURL, entries[0].URL)
 	}
