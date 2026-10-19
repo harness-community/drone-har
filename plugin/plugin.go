@@ -113,7 +113,13 @@ func Exec(ctx context.Context, args Args) error {
 	// Route to appropriate command handler
 	switch command {
 	case "push", "upload":
-		return handler.Push(ctx, config)
+		if err := handler.Push(ctx, config); err != nil {
+			return err
+		}
+		if entries := collectArtifactEntries(config, packageType); len(entries) > 0 {
+			writeArtifactFile(entries)
+		}
+		return nil
 	case "pull", "download":
 		return handler.Pull(ctx, config)
 	case "get", "info":
