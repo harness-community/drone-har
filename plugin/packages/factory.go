@@ -44,7 +44,7 @@ func (f *HandlerFactory) registerHandler(handler PackageHandler) {
 // GetHandler returns the appropriate handler for the given package type
 func (f *HandlerFactory) GetHandler(packageType string) (PackageHandler, error) {
 	// Normalize package type to uppercase
-	normalizedType := PackageType(packageType)
+	normalizedType := PackageType(strings.ToUpper(packageType))
 	
 	// Default to generic if empty
 	if normalizedType == "" {
