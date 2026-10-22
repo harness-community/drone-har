@@ -23,15 +23,15 @@ build-local:
 	./scripts/fetch-hc.sh $(shell go env GOOS)/$(shell go env GOARCH)
 	go build -o $(BINARY_NAME) .
 
-# Run tests (unit tests only)
+# Run tests (unit tests only) and write a coverage profile for CI coverage
+# reporting (centralisedGoCheckDynamic runs `make test`; sonar + hcli cov
+# consume coverage.out).
 test:
 	./scripts/fetch-hc.sh $(shell go env GOOS)/$(shell go env GOARCH)
-	go test -v ./...
+	go test -v -coverprofile=coverage.out -covermode=atomic ./...
 
-# Run tests with coverage
-test-coverage:
-	./scripts/fetch-hc.sh $(shell go env GOOS)/$(shell go env GOARCH)
-	go test -cover ./...
+# Run tests with coverage (alias of test; kept for local convenience)
+test-coverage: test
 
 # Run integration tests (requires HARNESS_TOKEN and HARNESS_ACCOUNT)
 test-integration:
