@@ -75,8 +75,7 @@ as flags: the plugin sets them in the child process environment.
 ### 1. Push Command
 
 ```bash
-harness-har push artifact:generic <registry>/<name> <source> --version <version> \
-  [--metadata key:value,...]
+harness-har push artifact:generic <registry>/<name> <source> --version <version>
 ```
 
 ### 2. Get Command

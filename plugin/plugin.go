@@ -14,16 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// pipelineEnvVars lists Harness CI env var names and their metadata key names.
-var pipelineEnvVars = [][2]string{
-	{"harness_pipeline_id", "HARNESS_PIPELINE_ID"},
-	{"harness_build_id", "HARNESS_BUILD_ID"},
-	{"harness_stage_id", "HARNESS_STAGE_ID"},
-	{"harness_step_id", "HARNESS_STEP_ID"},
-	{"harness_org_id", "HARNESS_ORG_ID"},
-	{"harness_project_id", "HARNESS_PROJECT_ID"},
-}
-
 const (
 	harnessHTTPProxy  = "HARNESS_HTTP_PROXY"
 	harnessHTTPSProxy = "HARNESS_HTTPS_PROXY"
@@ -168,8 +158,6 @@ func argsToConfig(args Args) packages.Config {
 		Source:      args.Source,
 		Destination: args.Destination,
 		Retries:     args.Retries,
-
-		Metadata: buildMetadata(),
 	}
 }
 
@@ -177,19 +165,6 @@ func argsToConfig(args Args) packages.Config {
 func isLoopbackURL(url string) bool {
 	u := strings.ToLower(url)
 	return strings.Contains(u, "localhost") || strings.Contains(u, "127.0.0.1")
-}
-
-// buildMetadata collects Harness CI pipeline env vars and returns a
-// "key:value,..." string for the --metadata flag. Returns empty string
-// when no env vars are set (e.g. running outside a pipeline).
-func buildMetadata() string {
-	var pairs []string
-	for _, kv := range pipelineEnvVars {
-		if val := os.Getenv(kv[1]); val != "" {
-			pairs = append(pairs, kv[0]+":"+val)
-		}
-	}
-	return strings.Join(pairs, ",")
 }
 
 func parseBoolOrDefault(defaultValue bool, s string) bool {

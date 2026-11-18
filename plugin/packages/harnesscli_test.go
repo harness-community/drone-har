@@ -186,7 +186,6 @@ func TestBuildPushCommand(t *testing.T) {
 		Registry: "reg",
 		ApiURL:   "https://app.example.com",
 		PomFile:  "pom.xml",
-		Metadata: "harness_pipeline_id:p1",
 	}
 	tests := []struct {
 		name        string
@@ -200,30 +199,18 @@ func TestBuildPushCommand(t *testing.T) {
 			packageType: Generic,
 			withName:    true,
 			want: []string{cli, "push", "artifact:generic", "reg/demo", "file.txt",
-				"--version", "v1", "--metadata", "harness_pipeline_id:p1"},
+				"--version", "v1"},
 		},
 		{
 			name:        "maven passes the pom",
 			packageType: Maven,
 			want: []string{cli, "push", "artifact:maven", "reg", "file.txt",
-				"--pom-file", "pom.xml", "--metadata", "harness_pipeline_id:p1"},
+				"--pom-file", "pom.xml"},
 		},
 		{
-			name:        "types without metadata support get none",
+			name:        "other types take only registry and file",
 			packageType: Conda,
 			want:        []string{cli, "push", "artifact:conda", "reg", "file.txt"},
-		},
-		{
-			name:        "local API URLs get no metadata",
-			packageType: NPM,
-			config:      func(c Config) Config { c.ApiURL = "http://localhost:3000"; return c },
-			want:        []string{cli, "push", "artifact:npm", "reg", "file.txt"},
-		},
-		{
-			name:        "no API URL means no metadata",
-			packageType: Python,
-			config:      func(c Config) Config { c.ApiURL = ""; return c },
-			want:        []string{cli, "push", "artifact:python", "reg", "file.txt"},
 		},
 	}
 

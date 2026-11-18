@@ -251,27 +251,6 @@ func commandEnv(vars map[string]string) []string {
 	return env
 }
 
-// isLocalAPIURL reports whether the API URL points at a local instance.
-func isLocalAPIURL(apiURL string) bool {
-	u := strings.ToLower(apiURL)
-	return strings.Contains(u, "localhost") || strings.Contains(u, "127.0.0.1")
-}
-
-// metadataUnsupportedTypes lists package types that do not support attaching
-// metadata to the artifact after upload.
-var metadataUnsupportedTypes = map[PackageType]bool{
-	Conda:    true,
-	Composer: true,
-	NuGet:    true,
-	RPM:      true,
-}
-
-// supportsMetadata reports whether the given package type supports the
-// --metadata flag.
-func supportsMetadata(packageType PackageType) bool {
-	return !metadataUnsupportedTypes[packageType]
-}
-
 // buildPushCommand builds a common push command for any package type
 func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) ([]string, error) {
 	harnessBin, err := getHarnessBin()
@@ -293,12 +272,6 @@ func buildPushCommand(packageType PackageType, config Config, version, filePath,
 		cmdArgs = append(cmdArgs, "--pom-file", config.PomFile)
 	}
 
-	// Skip metadata for local development URLs — the metadata API is not
-	// available on local instances — and for package types that do not
-	// support metadata.
-	if config.ApiURL != "" && config.Metadata != "" && !isLocalAPIURL(config.ApiURL) && supportsMetadata(packageType) {
-		cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
-	}
 	if config.Filename != "" {
 		logrus.Warnf("PLUGIN_FILENAME is ignored for push: the file is stored under its own name")
 	}
