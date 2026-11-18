@@ -65,7 +65,7 @@ func (h *DartHandler) pushSingleFile(config Config, filePath, artifactName strin
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Dart artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Dart artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Dart packages from the registry

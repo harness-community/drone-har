@@ -1,10 +1,10 @@
 # drone-har
 
-A Drone plugin for managing generic artifacts in Harness Artifact Registry (HAR) using the Harness CLI. Supports multiple operations including upload, download, info retrieval, and deletion.
+A Drone plugin for managing generic artifacts in Harness Artifact Registry (HAR) using the Harness CLI's HAR module (`harness-har`). Supports multiple operations including upload, download, info retrieval, and deletion.
 
 ## Overview
 
-This plugin provides a comprehensive way to manage artifacts in Harness Artifact Registry as part of your Drone CI/CD pipeline. It uses the Harness CLI (`hc`) internally to handle authentication and supports multiple operations:
+This plugin provides a comprehensive way to manage artifacts in Harness Artifact Registry as part of your Drone CI/CD pipeline. It embeds the Harness CLI's HAR binary (`harness-har`) and uses it internally to handle authentication and supports multiple operations:
 
 - **Push**: Upload artifacts to the registry
 - **Pull**: Download artifacts from the registry
@@ -268,8 +268,10 @@ Deletes an artifact from the registry.
 
 ## Requirements
 
-- Harness CLI (`hc`) must be available in the container
-- Valid Harness authentication token
+- Nothing to install: the plugin binary embeds the `harness-har` version pinned in `HC_VERSION`
+  (set `PLUGIN_HARNESS_HAR_PATH` to use a different binary)
+- Valid Harness authentication token: the pipeline's build token, a PAT, an SAT or a scoped token (`st.`)
+- `org` and `project`, which inside a pipeline default to the pipeline's own
 - Access to the target Harness Artifact Registry
 
 ## License

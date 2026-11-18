@@ -68,7 +68,7 @@ func (h *MavenHandler) pushSingleFile(config Config, filePath, artifactName stri
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Maven artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Maven artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Maven packages from the registry

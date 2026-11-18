@@ -1,5 +1,5 @@
 #!/bin/sh
-# Downloads the harness-cli release archives that get embedded into the plugin
+# Downloads the harness-har release archives that get embedded into the plugin
 # binary by plugin/packages/hcembed_*.go.
 #
 # The version comes from HC_VERSION, the single source of truth. Archives are
@@ -29,7 +29,7 @@ mkdir -p "$dest"
 
 # A version bump invalidates everything already downloaded.
 if [ ! -f "$stamp" ] || [ "$(cat "$stamp")" != "$version" ]; then
-	rm -f "$dest"/*.tar.gz
+	rm -f "$dest"/*.tar.gz "$dest"/*.zip
 	echo "$version" >"$stamp"
 fi
 
@@ -50,33 +50,21 @@ for platform in "$@"; do
 	goos=${platform%/*}
 	goarch=${platform#*/}
 
-	# harness-cli names its macOS archives "mac-os" and uses x86_64 rather than
-	# the Go spellings, so the asset name is not a simple interpolation.
-	case "$goos" in
-	linux) os=linux ;;
-	darwin) os=mac-os ;;
-	windows) os=windows ;;
+	case "$goos/$goarch" in
+	linux/amd64 | linux/arm64 | darwin/amd64 | darwin/arm64) ext=tar.gz ;;
+	windows/amd64 | windows/arm64) ext=zip ;;
 	*)
-		echo "fetch-hc: harness-cli publishes no builds for $goos" >&2
+		echo "fetch-hc: harness-har is not published for $goos/$goarch" >&2
 		exit 1
 		;;
 	esac
 
-	case "$goarch" in
-	amd64) arch=x86_64 ;;
-	arm64) arch=arm64 ;;
-	*)
-		echo "fetch-hc: harness-cli publishes no builds for $goos/$goarch" >&2
-		exit 1
-		;;
-	esac
-
-	out="$dest/hc_${goos}_${goarch}.tar.gz"
+	out="$dest/harness-har_${goos}_${goarch}.${ext}"
 	if [ -f "$out" ]; then
 		continue
 	fi
 
-	url="https://github.com/harness/harness-cli/releases/download/v${version}/hc_${version}_${os}_${arch}.tar.gz"
+	url="https://github.com/harness/cli/releases/download/har/v${version}/harness-plugin-har_${version}_${goos}_${goarch}.${ext}"
 	echo "fetch-hc: $goos/$goarch <- $url"
 
 	# Download to a temporary file so an interrupted run does not leave a

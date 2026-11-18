@@ -12,8 +12,8 @@ import (
 	_ "embed"
 )
 
-// embeddedHC is the pinned harness-cli release archive for this platform,
+// embeddedCLI is the pinned harness-har release archive for this platform,
 // fetched into hcbin by scripts/fetch-hc.sh at build time.
 //
-//go:embed hcbin/hc_linux_arm64.tar.gz
-var embeddedHC []byte
+//go:embed hcbin/harness-har_linux_arm64.tar.gz
+var embeddedCLI []byte

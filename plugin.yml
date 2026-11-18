@@ -1,4 +1,4 @@
-# No deps block: the plugin binary embeds the harness-cli version pinned in
+# No deps block: the plugin binary embeds the harness-har version pinned in
 # HC_VERSION and unpacks it on first use, so there is nothing to install here.
 # That also means this works on macOS and Windows runners, which a shell-based
 # deps step did not.

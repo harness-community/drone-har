@@ -129,9 +129,8 @@ func escapeFilePath(filePath string) string {
 	return strings.Join(segments, "/")
 }
 
-// There is no rename case — hc has
-// no --filename flag, and a push with PLUGIN_FILENAME set fails at hc before
-// metadata is written.
+// There is no rename case — push ignores PLUGIN_FILENAME and stores each file
+// under its own name.
 func filePathInPackage(file, sourceRoot string) string {
 	if sourceRoot != "" {
 		if rel, err := filepath.Rel(sourceRoot, file); err == nil && rel != "" && rel != "." {

@@ -6,11 +6,10 @@ package packages
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -69,7 +68,11 @@ func (h *GenericHandler) Push(ctx context.Context, config Config) error {
 
 	logrus.Printf("Source path: %s", config.Source)
 
-	return h.pushSingleFile(config, version, config.Source, config.Name, "")
+	cmdArgs, err := buildPushCommand(Generic, config, version, config.Source, config.Name, true)
+	if err != nil {
+		return err
+	}
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push artifact '%s' to registry '%s'", config.Name, config.Registry))
 }
 
 // Pull downloads generic artifacts from the registry
@@ -102,36 +105,23 @@ func (h *GenericHandler) Pull(ctx context.Context, config Config) error {
 		return fmt.Errorf("package URL must be set")
 	}
 
-	// Construct package path in the format expected by harness-cli: <package_name>/<version>/<filename>
-	packagePath := fmt.Sprintf("%s/%s/%s", config.Name, config.Version, config.Filename)
+	// harness-har refuses a destination that does not exist yet.
+	if err := os.MkdirAll(config.Destination, 0o755); err != nil {
+		return fmt.Errorf("failed to create destination directory '%s': %w", config.Destination, err)
+	}
 
-	// Build Harness CLI command
 	harnessBin, err := getHarnessBin()
 	if err != nil {
 		return err
 	}
-	cmdArgs := []string{harnessBin, "artifact", "pull", string(Generic), config.Registry, packagePath, config.Destination}
-
-	// Add required flags
-	cmdArgs = append(cmdArgs, "--token", config.Token)
-	cmdArgs = append(cmdArgs, "--account", config.Account)
-	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
-
-	// Add optional flags
-	if config.Org != "" {
-		cmdArgs = append(cmdArgs, "--org", config.Org)
-	}
-	if config.Project != "" {
-		cmdArgs = append(cmdArgs, "--project", config.Project)
-	}
-	if config.ApiURL != "" {
-		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
+	cmdArgs := []string{
+		harnessBin, "pull", "artifact", config.Registry + "/" + config.Name, config.Destination,
+		"--version", config.Version,
+		"--filename", config.Filename,
+		"--package-type", "generic",
 	}
 
-	// Add format flag for consistent output
-	cmdArgs = append(cmdArgs, "--format", "json")
-
-	return executeCommand(cmdArgs, fmt.Sprintf("pull artifact '%s' (version '%s', file '%s') from registry '%s' to '%s'",
+	return executeCommand(config, cmdArgs, fmt.Sprintf("pull artifact '%s' (version '%s', file '%s') from registry '%s' to '%s'",
 		config.Name, config.Version, config.Filename, config.Registry, config.Destination))
 }
 
@@ -156,30 +146,9 @@ func (h *GenericHandler) Get(ctx context.Context, config Config) error {
 	if err != nil {
 		return err
 	}
+	cmdArgs := []string{harnessBin, "get", "artifact", config.Registry + "/" + config.Name, "--format", "json"}
 
-	// Use 'hc artifact get' command with name as positional arg and registry as flag
-	cmd := []string{
-		harnessBin,
-		"artifact", "get", config.Name,
-	}
-
-	// Add required flags
-	cmd = append(cmd, "--registry", config.Registry)
-	cmd = append(cmd, "--token", config.Token)
-	cmd = append(cmd, "--account", config.Account)
-	if config.Org != "" {
-		cmd = append(cmd, "--org", config.Org)
-	}
-	if config.Project != "" {
-		cmd = append(cmd, "--project", config.Project)
-	}
-	if config.ApiURL != "" {
-		cmd = append(cmd, "--api-url", config.ApiURL)
-	}
-
-	cmd = append(cmd, "--format", "json")
-
-	return executeCommand(cmd, fmt.Sprintf("get info for artifact '%s' in registry '%s'", config.Name, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("get info for artifact '%s' in registry '%s'", config.Name, config.Registry))
 }
 
 // Delete removes generic artifacts from the registry
@@ -204,214 +173,82 @@ func (h *GenericHandler) Delete(ctx context.Context, config Config) error {
 	if err != nil {
 		return err
 	}
+	// --force skips the confirmation prompt, which a pipeline step cannot answer.
+	cmdArgs := []string{harnessBin, "delete", "artifact", config.Registry + "/" + config.Name, "--force"}
 
-	// Build Harness CLI command - use 'hc artifact delete' with name as argument and registry as flag
-	cmdArgs := []string{harnessBin, "artifact", "delete", config.Name}
-
-	// Add required flags
-	cmdArgs = append(cmdArgs, "--registry", config.Registry)
-	cmdArgs = append(cmdArgs, "--token", config.Token)
-	cmdArgs = append(cmdArgs, "--account", config.Account)
-
-	// Add optional flags
-	if config.Org != "" {
-		cmdArgs = append(cmdArgs, "--org", config.Org)
-	}
-	if config.Project != "" {
-		cmdArgs = append(cmdArgs, "--project", config.Project)
-	}
-	if config.ApiURL != "" {
-		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
-	}
-
-	// Add format flag for consistent output
-	cmdArgs = append(cmdArgs, "--format", "json")
-
-	return executeCommand(cmdArgs, fmt.Sprintf("delete artifact '%s' from registry '%s'", config.Name, config.Registry))
-}
-
-// pushDirectory handles pushing all files in a directory for generic packages
-func (h *GenericHandler) pushDirectory(config Config, version string) error {
-	logrus.Printf("Source is a directory, pushing all files from: %s", config.Source)
-
-	// Walk through directory recursively to find all files
-	var filesToPush []string
-	err := filepath.Walk(config.Source, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			logrus.Printf("Warning: failed to access path '%s': %v", path, err)
-			return nil // Continue walking despite errors
-		}
-
-		// Skip directories
-		if info.IsDir() {
-			// Skip hidden directories (like .venv, .git, etc.)
-			if strings.HasPrefix(info.Name(), ".") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		// Skip hidden files
-		if strings.HasPrefix(info.Name(), ".") {
-			return nil
-		}
-		// Only collect regular files
-		filesToPush = append(filesToPush, path)
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to walk directory '%s': %w", config.Source, err)
-	}
-
-	if len(filesToPush) == 0 {
-		return fmt.Errorf("no files found in directory '%s'", config.Source)
-	}
-
-	logrus.Printf("Found %d files to push", len(filesToPush))
-
-	// Track success/failure statistics
-	var successCount, failureCount, skippedCount int
-
-	// Push each file
-	for i, file := range filesToPush {
-		filename := filepath.Base(file)
-		logrus.Printf("[%d/%d] Pushing file: %s", i+1, len(filesToPush), filename)
-
-		// Get relative path from the source directory
-		relPath, err := filepath.Rel(config.Source, file)
-		if err != nil {
-			// Fallback to just filename if relative path fails
-			relPath = filename
-		}
-
-		// For multiple files, use relative path as part of artifact name
-		artifactName := config.Name
-
-		// Validate artifact name
-		if artifactName == "" || strings.HasSuffix(artifactName, "_") || strings.HasSuffix(artifactName, "-") {
-			logrus.Printf("⚠ Warning: Invalid artifact name '%s' for file '%s', skipping", artifactName, filename)
-			skippedCount++
-			continue
-		}
-
-		err = h.pushSingleFile(config, version, file, artifactName, relPath)
-		if err != nil {
-			// Log the error but continue with other files instead of failing the entire process
-			logrus.Errorf("✗ Failed to push file '%s': %v", filename, err)
-			logrus.Printf("Continuing with remaining files...")
-			failureCount++
-			continue
-		}
-
-		logrus.Printf("✓ Successfully pushed file: %s as artifact: %s", filename, artifactName)
-		successCount++
-	}
-
-	// Print final statistics
-	logrus.Printf("=== DIRECTORY UPLOAD SUMMARY ===")
-	logrus.Printf("Total files processed: %d", len(filesToPush))
-	logrus.Printf("✓ Successfully uploaded: %d", successCount)
-	if failureCount > 0 {
-		logrus.Printf("✗ Failed uploads: %d", failureCount)
-	}
-	if skippedCount > 0 {
-		logrus.Printf("⚠ Skipped files: %d", skippedCount)
-	}
-
-	if failureCount > 0 || skippedCount > 0 {
-		logrus.Printf("Directory upload completed with %d failures and %d skipped files", failureCount, skippedCount)
-	} else {
-		logrus.Printf("✓ All files uploaded successfully!")
-	}
-
-	return nil
-}
-
-// pushSingleFile handles pushing a single file for generic packages
-func (h *GenericHandler) pushSingleFile(config Config, version, filePath, customName, relativePath string) error {
-	// Use custom name if provided, otherwise use the original artifact name
-	artifactName := config.Name
-	if customName != "" {
-		artifactName = customName
-	}
-
-	// Build command using shared helper
-	cmdArgs, err := buildPushCommand(Generic, config, version, filePath, artifactName, true)
-	if err != nil {
-		return err
-	}
-
-	// Add path parameter for generic packages - use relative path if provided, otherwise use filename
-	if relativePath != "" {
-		cmdArgs = append(cmdArgs, "--path", relativePath)
-	}
-
-	return executeCommand(cmdArgs, fmt.Sprintf("push artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("delete artifact '%s' from registry '%s'", config.Name, config.Registry))
 }
 
 // Helper functions
 
-// AuthConfig represents the Harness authentication configuration expected by hc.
-type AuthConfig struct {
-	BaseURL     string `json:"base_url"`
-	Token       string `json:"token"`
-	AccountID   string `json:"account_id"`
-	RegistryURL string `json:"registry_url"`
+// cliAuthEnv returns the variables that authenticate harness-har. A pat., sat.
+// or st. API key uses the CLI's env mode; any other token is the pipeline's
+// build token (a JWT), which only the CLI's pipeline mode sends as
+// "Authorization: CIManager <token>". Plugin settings win over the pipeline's
+// own HARNESS_*_ID variables, which only fill gaps.
+func cliAuthEnv(config Config) (map[string]string, error) {
+	org := firstNonEmpty(config.Org, os.Getenv("HARNESS_ORG_ID"))
+	project := firstNonEmpty(config.Project, os.Getenv("HARNESS_PROJECT_ID"))
+	if org == "" || project == "" {
+		return nil, fmt.Errorf("organization and project must be set (PLUGIN_ORG and PLUGIN_PROJECT)")
+	}
+
+	token := config.Token
+	switch {
+	case strings.HasPrefix(token, "pat."), strings.HasPrefix(token, "sat."), strings.HasPrefix(token, "st."):
+		// HARNESS_PROFILE=env also stops the CLI from switching to pipeline
+		// mode just because HARNESS_PIPELINE_ID is set.
+		return map[string]string{
+			"HARNESS_PROFILE":      "env",
+			"HARNESS_API_KEY":      token,
+			"HARNESS_ACCOUNT":      config.Account,
+			"HARNESS_ORG":          org,
+			"HARNESS_PROJECT":      project,
+			"HARNESS_API_URL":      config.ApiURL,
+			"HARNESS_REGISTRY_URL": config.PkgURL,
+		}, nil
+	default:
+		return map[string]string{
+			"HARNESS_PROFILE":     "pipeline",
+			"HARNESS_HAR_TOKEN":   token,
+			"HARNESS_HAR_API_URL": config.ApiURL,
+			"HARNESS_HAR_URL":     config.PkgURL,
+			"HARNESS_ACCOUNT_ID":  firstNonEmpty(config.Account, os.Getenv("HARNESS_ACCOUNT_ID")),
+			"HARNESS_ORG_ID":      org,
+			"HARNESS_PROJECT_ID":  project,
+		}, nil
+	}
 }
 
-// formatToken returns the token in the format hc expects.
-// PAT, SAT, and ST tokens are API keys that hc accepts as-is.
-// All other tokens (e.g. JWT build tokens) are prefixed with "CIManager ".
-func formatToken(token string) string {
-	for _, prefix := range []string{"pat.", "sat.", "st."} {
-		if strings.HasPrefix(token, prefix) {
-			return token
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
 		}
 	}
-	return "CIManager " + token
+	return ""
 }
 
-// createAuthFile creates ~/.harness/auth.json with authentication details.
-// Field names and values must match the format produced by `hc auth login`.
-func createAuthFile(config Config) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+// commandEnv is the plugin's own environment with vars replacing any existing
+// entries of the same name.
+func commandEnv(vars map[string]string) []string {
+	env := make([]string, 0, len(os.Environ())+len(vars))
+	for _, kv := range os.Environ() {
+		key, _, _ := strings.Cut(kv, "=")
+		if _, ok := vars[key]; ok {
+			continue
+		}
+		env = append(env, kv)
 	}
-
-	harnessDir := filepath.Join(homeDir, ".harness")
-	if err := os.MkdirAll(harnessDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .harness directory: %w", err)
+	keys := make([]string, 0, len(vars))
+	for key := range vars {
+		keys = append(keys, key)
 	}
-
-	// hc requires base_url to be non-empty or it exits with "Not logged in".
-	// When PLUGIN_API_URL is not set we fall back to PkgURL: the push path
-	// uses PkgURL directly (via --pkg-url flag) so APIBaseURL is only needed
-	// to satisfy the login check, not for the actual registry calls.
-	baseURL := config.ApiURL
-	if baseURL == "" {
-		baseURL = config.PkgURL
+	sort.Strings(keys)
+	for _, key := range keys {
+		env = append(env, key+"="+vars[key])
 	}
-	authConfig := AuthConfig{
-		BaseURL:     baseURL,
-		Token:       formatToken(config.Token),
-		AccountID:   config.Account,
-		RegistryURL: config.PkgURL,
-	}
-
-	authFile := filepath.Join(harnessDir, "auth.json")
-	authData, err := json.MarshalIndent(authConfig, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal auth config: %w", err)
-	}
-
-	if err := os.WriteFile(authFile, authData, 0600); err != nil {
-		return fmt.Errorf("failed to write auth file: %w", err)
-	}
-
-	logrus.Printf("Created auth file: %s", authFile)
-	return nil
+	return env
 }
 
 // isLocalAPIURL reports whether the API URL points at a local instance.
@@ -437,73 +274,59 @@ func supportsMetadata(packageType PackageType) bool {
 
 // buildPushCommand builds a common push command for any package type
 func buildPushCommand(packageType PackageType, config Config, version, filePath, artifactName string, includeFileAndVersion bool) ([]string, error) {
-	// Create auth file first
-	if err := createAuthFile(config); err != nil {
-		return nil, fmt.Errorf("failed to create auth file: %w", err)
-	}
-
 	harnessBin, err := getHarnessBin()
 	if err != nil {
 		return nil, err
 	}
 
-	cmdArgs := []string{harnessBin, "artifact"}
-
-	// Add context flags (no token needed as it's in auth.json)
-	if config.Org != "" {
-		cmdArgs = append(cmdArgs, "--org", config.Org)
-	}
-	if config.Project != "" {
-		cmdArgs = append(cmdArgs, "--project", config.Project)
-	}
-
-	// Add the rest of the command: push, package-type, registry, filepath
-	// All package types need the file path to know what to push
-	cmdArgs = append(cmdArgs, "push", strings.ToLower(string(packageType)), config.Registry, filePath)
-
-	// Add other required flags
+	// Only generic packages take the artifact name and version from the
+	// plugin; every other type reads them from the package itself.
+	target := config.Registry
 	if includeFileAndVersion {
-		// Only generic packages need explicit name and version
-		cmdArgs = append(cmdArgs, "--name", artifactName)
+		target += "/" + artifactName
+	}
+	cmdArgs := []string{harnessBin, "push", "artifact:" + strings.ToLower(string(packageType)), target, filePath}
+	if includeFileAndVersion {
 		cmdArgs = append(cmdArgs, "--version", version)
 	}
 	if packageType == Maven {
 		cmdArgs = append(cmdArgs, "--pom-file", config.PomFile)
 	}
-	cmdArgs = append(cmdArgs, "--pkg-url", config.PkgURL)
 
-	// Add remaining optional flags
-	if config.ApiURL != "" {
-		cmdArgs = append(cmdArgs, "--api-url", config.ApiURL)
-		// Skip metadata for local development URLs — the metadata API is not
-		// available on local instances — and for package types that do not
-		// support metadata.
-		if config.Metadata != "" && !isLocalAPIURL(config.ApiURL) && supportsMetadata(packageType) {
-			cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
-		}
+	// Skip metadata for local development URLs — the metadata API is not
+	// available on local instances — and for package types that do not
+	// support metadata.
+	if config.ApiURL != "" && config.Metadata != "" && !isLocalAPIURL(config.ApiURL) && supportsMetadata(packageType) {
+		cmdArgs = append(cmdArgs, "--metadata", config.Metadata)
 	}
 	if config.Filename != "" {
-		cmdArgs = append(cmdArgs, "--filename", config.Filename)
+		logrus.Warnf("PLUGIN_FILENAME is ignored for push: the file is stored under its own name")
 	}
 
 	return cmdArgs, nil
 }
 
-// executeCommand executes a Harness CLI command
-func executeCommand(cmdArgs []string, operation string) error {
+// executeCommand runs a harness-har command authenticated for config.
+func executeCommand(config Config, cmdArgs []string, operation string) error {
+	vars, err := cliAuthEnv(config)
+	if err != nil {
+		return err
+	}
+	// The plugin pins its CLI version, so the CLI's own update notice is noise.
+	vars["HARNESS_NO_UPDATE_CHECK"] = "1"
+
 	cmdStr := strings.Join(cmdArgs, " ")
 	logrus.Printf("Executing command: %s", cmdStr)
 
 	// Execute command directly without shell to avoid argument parsing issues
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-	cmd.Env = os.Environ()
+	cmd.Env = commandEnv(vars)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	trace(cmd)
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to %s: %w", operation, err)
 	}
 

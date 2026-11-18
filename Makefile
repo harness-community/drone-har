@@ -5,12 +5,12 @@ BINARY_NAME=drone-har
 DOCKER_IMAGE_NAME=harness/drone-har
 VERSION?=latest
 
-# Download the pinned harness-cli build that gets embedded into the binary.
+# Download the pinned harness-har build that gets embedded into the binary.
 # Every build target depends on this: go:embed fails without the archive.
 hc:
 	./scripts/fetch-hc.sh linux/$(shell go env GOARCH)
 
-# Download the harness-cli builds for every platform we release for
+# Download the harness-har builds for every platform we release for
 hc-all:
 	./scripts/fetch-hc.sh
 
@@ -47,7 +47,7 @@ test-all:
 # Clean build artifacts
 clean:
 	rm -f $(BINARY_NAME)
-	rm -f plugin/packages/hcbin/*.tar.gz plugin/packages/hcbin/.version
+	rm -f plugin/packages/hcbin/*.tar.gz plugin/packages/hcbin/*.zip plugin/packages/hcbin/.version
 
 # Build Docker image
 docker-build:

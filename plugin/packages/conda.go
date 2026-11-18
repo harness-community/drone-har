@@ -64,7 +64,7 @@ func (h *CondaHandler) pushSingleFile(config Config, filePath, artifactName stri
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Conda artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Conda artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Conda packages from the registry

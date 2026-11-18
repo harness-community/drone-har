@@ -65,7 +65,7 @@ func (h *RPMHandler) pushSingleFile(config Config, filePath, artifactName string
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push RPM artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push RPM artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads RPM packages from the registry

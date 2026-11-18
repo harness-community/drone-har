@@ -65,7 +65,7 @@ func (h *CargoHandler) pushSingleFile(config Config, filePath, artifactName stri
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Cargo artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Cargo artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Cargo packages from the registry

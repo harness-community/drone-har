@@ -6,6 +6,6 @@
 
 package packages
 
-// embeddedHC is empty on platforms we do not publish releases for, so the
-// plugin still builds there and falls back to downloading harness-cli.
-var embeddedHC []byte
+// embeddedCLI is empty on platforms we do not publish releases for, so the
+// plugin still builds there and falls back to downloading harness-har.
+var embeddedCLI []byte

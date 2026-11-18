@@ -62,91 +62,40 @@ Integration tests execute real operations against Harness Artifact Registry to v
 
 ## Generated CLI Commands
 
+The plugin runs the embedded `harness-har` binary. Credentials are never passed
+as flags: the plugin sets them in the child process environment.
+
+- Pipeline build token (JWT): `HARNESS_PROFILE=pipeline` with `HARNESS_HAR_TOKEN`,
+  `HARNESS_HAR_API_URL`, `HARNESS_HAR_URL` and `HARNESS_ACCOUNT_ID`/`ORG_ID`/`PROJECT_ID`.
+  The CLI sends `Authorization: CIManager <token>`.
+- PAT, SAT or scoped token (`st.`): `HARNESS_PROFILE=env` with `HARNESS_API_KEY`, `HARNESS_ACCOUNT`,
+  `HARNESS_ORG`, `HARNESS_PROJECT`, `HARNESS_API_URL` and `HARNESS_REGISTRY_URL`.
+  The CLI sends `x-api-key: <token>`.
+
 ### 1. Push Command
 
-**Plugin generates:**
 ```bash
-hc artifact push generic <registry> <source> \
-  --name <name> \
-  --version <version> \
-  --token <token> \
-  --account <account> \
-  --pkg-url <pkg-url> \
-  --org <org> \
-  --project <project> \
-  --format json
-```
-
-**Matches your working command:**
-```bash
-hc artifact push generic testt sample-artifacts/README.txt \
-  --name sample-readme \
-  --version 1.0.0 \
-  --pkg-url https://pkg.harness.io
+harness-har push artifact:generic <registry>/<name> <source> --version <version> \
+  [--metadata key:value,...]
 ```
 
 ### 2. Get Command
 
-**Plugin generates:**
 ```bash
-hc artifact get <name> \
-  --registry <registry> \
-  --token <token> \
-  --account <account> \
-  --org <org> \
-  --project <project> \
-  --format json
-```
-
-**Matches your working command:**
-```bash
-hc artifact get sample-readme \
-  --registry testt \
-  --org default \
-  --project jatintest \
-  --format json
+harness-har get artifact <registry>/<name> --format json
 ```
 
 ### 3. Pull Command
 
-**Plugin generates:**
 ```bash
-hc artifact pull generic <registry> <name>/<version>/<filename> <destination> \
-  --token <token> \
-  --account <account> \
-  --pkg-url <pkg-url> \
-  --org <org> \
-  --project <project> \
-  --format json
-```
-
-**Matches your working command:**
-```bash
-hc artifact pull generic testt sample-readme/1.0.0/README.txt ./downloads \
-  --pkg-url https://pkg.harness.io \
-  --org default \
-  --project jatintest
+harness-har pull artifact <registry>/<name> <destination> \
+  --version <version> --filename <filename> --package-type generic
 ```
 
 ### 4. Delete Command
 
-**Plugin generates:**
 ```bash
-hc artifact delete <name> \
-  --registry <registry> \
-  --token <token> \
-  --account <account> \
-  --org <org> \
-  --project <project> \
-  --format json
-```
-
-**Matches your working command:**
-```bash
-hc artifact delete sample-readme \
-  --registry testt \
-  --org default \
-  --project jatintest
+harness-har delete artifact <registry>/<name> --force
 ```
 
 ## Example Pipeline Configurations
@@ -289,13 +238,10 @@ go test -tags=integration -v -run TestIntegration_FullWorkflow ./plugin/...
 
 ## Key Changes Made
 
-1. ✅ Changed from `hc ar` to `hc artifact` for all commands
-2. ✅ Updated push command structure
-3. ✅ Updated pull command structure
-4. ✅ Updated get command structure
-5. ✅ Updated delete command structure
-6. ✅ All commands now match the actual harness-cli command format
-7. ✅ Added comprehensive validation tests for all 4 operations
+1. ✅ Moved from the deprecated `hc` to the embedded `harness-har` binary
+2. ✅ Credentials are passed through the environment instead of `~/.harness/auth.json`
+3. ✅ Pipeline build tokens use the CLI's pipeline auth; PATs, SATs and scoped tokens use env auth
+4. ✅ Added comprehensive validation tests for all 4 operations
 
 ## Validation
 

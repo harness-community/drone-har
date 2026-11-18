@@ -1,14 +1,15 @@
-# Embedded harness-cli archives
+# Embedded harness-har archives
 
-This directory holds the harness-cli release archives that `go:embed` folds into
-the plugin binary, one per platform we release for:
+This directory holds the harness-har release archives (from the `har/v*`
+releases of `harness/cli`) that `go:embed` folds into the plugin binary, one
+per platform we release for:
 
 ```
-hc_linux_amd64.tar.gz    hc_darwin_amd64.tar.gz    hc_windows_amd64.tar.gz
-hc_linux_arm64.tar.gz    hc_darwin_arm64.tar.gz    hc_windows_arm64.tar.gz
+harness-har_linux_amd64.tar.gz    harness-har_darwin_amd64.tar.gz    harness-har_windows_amd64.zip
+harness-har_linux_arm64.tar.gz    harness-har_darwin_arm64.tar.gz    harness-har_windows_arm64.zip
 ```
 
-The archives are **not** checked in — they are ~14 MB each. Fetch them with:
+The archives are **not** checked in. Fetch them with:
 
 ```bash
 scripts/fetch-hc.sh                 # every platform
@@ -20,7 +21,7 @@ Dockerfiles, and the release pipeline all run the fetch for you; a plain
 `go build .` on a fresh clone fails with
 
 ```
-pattern hcbin/hc_linux_arm64.tar.gz: no matching files found
+pattern hcbin/harness-har_linux_arm64.tar.gz: no matching files found
 ```
 
 which means you need to run the script first.

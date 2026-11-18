@@ -65,7 +65,7 @@ func (h *NPMHandler) pushSingleFile(config Config, filePath, artifactName string
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push NPM artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push NPM artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads NPM packages from the registry

@@ -384,8 +384,7 @@ func TestCollectArtifactEntries_Directory(t *testing.T) {
 }
 
 func TestCollectArtifactEntries_FilenameIgnored(t *testing.T) {
-	// hc has no --filename flag (a push with PLUGIN_FILENAME set fails at hc
-	// before metadata is written), so metadata always reflects the stored
+	// Push ignores PLUGIN_FILENAME, so metadata always reflects the stored
 	// object path: the local file's basename.
 	dir := t.TempDir()
 	path := filepath.Join(dir, "app.jar")

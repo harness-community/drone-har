@@ -13,7 +13,7 @@ echo "3. RPM package (.rpm file)"
 echo "4. Conda package (.conda/.tar.bz2 file)"
 echo ""
 
-# Add current directory to PATH so hc can be found
+# Add current directory to PATH so local binaries can be found
 export PATH="$PATH:$(pwd)"
 
 # Create test file for single file upload

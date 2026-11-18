@@ -6,6 +6,7 @@ package packages
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -25,136 +26,145 @@ import (
 )
 
 const (
-	// hcPathEnv points the plugin at a specific hc binary and skips version
-	// resolution entirely. Intended as an escape hatch for air-gapped and
-	// self-managed installations that provision hc themselves.
-	hcPathEnv = "PLUGIN_HC_PATH"
+	// cliPathEnv points the plugin at a specific harness-har binary and skips
+	// version resolution entirely. Intended as an escape hatch for air-gapped
+	// and self-managed installations that provision the CLI themselves.
+	cliPathEnv = "PLUGIN_HARNESS_HAR_PATH"
 
-	// hcReleaseURLTemplate is the harness-cli release archive location.
-	hcReleaseURLTemplate = "https://github.com/harness/harness-cli/releases/download/v%s/%s"
+	// legacyHCPathEnv pointed at the retired hc binary. It is only read to warn
+	// that it no longer has any effect.
+	legacyHCPathEnv = "PLUGIN_HC_PATH"
 
-	// hcVersionTimeout bounds `hc version` on a candidate binary, so an
-	// unrelated executable that happens to be named hc cannot hang the step.
-	hcVersionTimeout = 20 * time.Second
+	// cliReleaseURLTemplate is the harness-har release archive location.
+	cliReleaseURLTemplate = "https://github.com/harness/cli/releases/download/har/v%s/%s"
 
-	// hcDownloadTimeout bounds fetching the release archive.
-	hcDownloadTimeout = 3 * time.Minute
+	// cliVersionTimeout bounds `harness-har version` on a candidate binary, so
+	// an unrelated executable with the same name cannot hang the step.
+	cliVersionTimeout = 20 * time.Second
+
+	// cliDownloadTimeout bounds fetching the release archive.
+	cliDownloadTimeout = 3 * time.Minute
 )
 
-// pinnedHCVersion is the harness-cli version this plugin requires, set from the
-// embedded HC_VERSION file at startup. Empty means unconfigured, which is a
-// build error rather than something to paper over at runtime.
-var pinnedHCVersion string
+// pinnedCLIVersion is the harness-har version this plugin requires, set from
+// the embedded HC_VERSION file at startup. Empty means unconfigured, which is
+// a build error rather than something to paper over at runtime.
+var pinnedCLIVersion string
 
-// SetPinnedHCVersion records the required harness-cli version. It is called
+// SetPinnedCLIVersion records the required harness-har version. It is called
 // once at startup with the contents of the HC_VERSION file.
-func SetPinnedHCVersion(version string) {
-	pinnedHCVersion = strings.TrimSpace(version)
+func SetPinnedCLIVersion(version string) {
+	pinnedCLIVersion = strings.TrimSpace(version)
 }
 
-// PinnedHCVersion returns the harness-cli version this plugin requires.
-func PinnedHCVersion() string {
-	return pinnedHCVersion
+// PinnedCLIVersion returns the harness-har version this plugin requires.
+func PinnedCLIVersion() string {
+	return pinnedCLIVersion
 }
 
 var (
-	hcOnce sync.Once
-	hcPath string
-	hcErr  error
+	cliOnce sync.Once
+	cliPath string
+	cliErr  error
 )
 
-// getHarnessBin returns an absolute path to an hc binary whose version matches
-// the pinned one, downloading it if no suitable binary is already present.
+// getHarnessBin returns an absolute path to a harness-har binary whose version
+// matches the pinned one, downloading it if no suitable binary is present.
 //
-// It deliberately never returns a bare "hc": resolving through PATH at exec
-// time means an older hc earlier in PATH silently wins, which surfaces as
-// confusing "unknown flag" errors rather than a version mismatch.
+// It deliberately never returns a bare "harness-har": resolving through PATH
+// at exec time means an older binary earlier in PATH silently wins, which
+// surfaces as confusing "unknown flag" errors rather than a version mismatch.
 func getHarnessBin() (string, error) {
-	hcOnce.Do(func() {
-		hcPath, hcErr = resolveHarnessBin()
+	cliOnce.Do(func() {
+		cliPath, cliErr = resolveHarnessBin()
 	})
-	return hcPath, hcErr
+	return cliPath, cliErr
 }
 
 // resetHarnessBinCache clears the memoized resolution. Used by tests.
 func resetHarnessBinCache() {
-	hcOnce = sync.Once{}
-	hcPath = ""
-	hcErr = nil
+	cliOnce = sync.Once{}
+	cliPath = ""
+	cliErr = nil
 }
 
 func resolveHarnessBin() (string, error) {
+	if os.Getenv(legacyHCPathEnv) != "" && os.Getenv(cliPathEnv) == "" {
+		logrus.Warnf("%s is set but no longer used: the plugin now runs harness-har; set %s instead",
+			legacyHCPathEnv, cliPathEnv)
+	}
+
 	// An explicit override is honoured as-is; the operator has stated intent.
 	// We still report the version so step logs show what actually ran.
-	if override := strings.TrimSpace(os.Getenv(hcPathEnv)); override != "" {
-		version, err := hcBinaryVersion(override)
+	if override := strings.TrimSpace(os.Getenv(cliPathEnv)); override != "" {
+		version, err := cliBinaryVersion(override)
 		if err != nil {
-			return "", fmt.Errorf("%s=%q is not a usable harness-cli binary: %w", hcPathEnv, override, err)
+			return "", fmt.Errorf("%s=%q is not a usable harness-har binary: %w", cliPathEnv, override, err)
 		}
-		if version != pinnedHCVersion {
-			logrus.Warnf("using harness-cli %s from %s=%s, but this plugin pins %s",
-				version, hcPathEnv, override, pinnedHCVersion)
+		if version != pinnedCLIVersion {
+			logrus.Warnf("using harness-har %s from %s=%s, but this plugin pins %s",
+				version, cliPathEnv, override, pinnedCLIVersion)
 		} else {
-			logrus.Debugf("using harness-cli %s from %s=%s", version, hcPathEnv, override)
+			logrus.Debugf("using harness-har %s from %s=%s", version, cliPathEnv, override)
 		}
 		return override, nil
 	}
 
-	if pinnedHCVersion == "" {
-		return "", fmt.Errorf("no pinned harness-cli version is configured; " +
+	if pinnedCLIVersion == "" {
+		return "", fmt.Errorf("no pinned harness-har version is configured; " +
 			"the plugin was built without a valid HC_VERSION file")
 	}
 
-	if path, ok := resolveFromCandidates(hcCandidatePaths(), pinnedHCVersion); ok {
-		logrus.Debugf("using harness-cli %s at %s", pinnedHCVersion, path)
+	if path, ok := resolveFromCandidates(cliCandidatePaths(), pinnedCLIVersion); ok {
+		logrus.Debugf("using harness-har %s at %s", pinnedCLIVersion, path)
 		return path, nil
 	}
 
 	// The copy embedded in this binary is the normal path: it needs no network
 	// and cannot be a different version than the one we were built against.
-	path, embedErr := installEmbeddedHC(pinnedHCVersion)
+	path, embedErr := installEmbeddedCLI(pinnedCLIVersion)
 	if embedErr == nil {
-		logrus.Debugf("using embedded harness-cli %s at %s", pinnedHCVersion, path)
+		logrus.Debugf("using embedded harness-har %s at %s", pinnedCLIVersion, path)
 		return path, nil
 	}
-	logrus.Debugf("could not use the embedded harness-cli: %v", embedErr)
+	logrus.Debugf("could not use the embedded harness-har: %v", embedErr)
 
-	logrus.Infof("harness-cli %s not available locally, downloading", pinnedHCVersion)
-	path, err := downloadHC(pinnedHCVersion)
+	logrus.Infof("harness-har %s not available locally, downloading", pinnedCLIVersion)
+	path, err := downloadCLI(pinnedCLIVersion)
 	if err != nil {
-		return "", fmt.Errorf("could not obtain harness-cli %s: %w (embedded copy unusable: %v; "+
-			"set %s to use a preinstalled binary)", pinnedHCVersion, err, embedErr, hcPathEnv)
+		return "", fmt.Errorf("could not obtain harness-har %s: %w (embedded copy unusable: %v; "+
+			"set %s to use a preinstalled binary)", pinnedCLIVersion, err, embedErr, cliPathEnv)
 	}
-	logrus.Debugf("using harness-cli %s at %s", pinnedHCVersion, path)
+	logrus.Debugf("using harness-har %s at %s", pinnedCLIVersion, path)
 	return path, nil
 }
 
-// installEmbeddedHC unpacks the harness-cli archive embedded in this binary into
-// the cache directory and returns the binary's path. The extracted binary is
-// version-checked like any other candidate, so a mismatched embed falls through
-// to a download rather than running the wrong hc.
-func installEmbeddedHC(version string) (string, error) {
-	if len(embeddedHC) == 0 {
-		return "", fmt.Errorf("this build embeds no harness-cli for %s/%s", runtime.GOOS, runtime.GOARCH)
+// installEmbeddedCLI unpacks the harness-har archive embedded in this binary
+// into the cache directory and returns the binary's path. The extracted binary
+// is version-checked like any other candidate, so a mismatched embed falls
+// through to a download rather than running the wrong CLI.
+func installEmbeddedCLI(version string) (string, error) {
+	if len(embeddedCLI) == 0 {
+		return "", fmt.Errorf("this build embeds no harness-har for %s/%s", runtime.GOOS, runtime.GOARCH)
 	}
 
-	dest, err := hcCacheBinPath(version)
+	dest, err := cliCacheBinPath(version)
 	if err != nil {
 		return "", err
 	}
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return "", fmt.Errorf("could not create cache directory: %w", err)
 	}
-	if err := extractHCBinary(bytes.NewReader(embeddedHC), dest); err != nil {
-		return "", fmt.Errorf("could not extract the embedded harness-cli: %w", err)
+	if err := extractCLIBinary(embeddedCLI, dest); err != nil {
+		return "", fmt.Errorf("could not extract the embedded harness-har: %w", err)
 	}
 
-	found, err := hcBinaryVersion(dest)
+	found, err := cliBinaryVersion(dest)
 	if err != nil {
 		return "", err
 	}
 	if found != version {
-		return "", fmt.Errorf("the embedded harness-cli reports %s, but this plugin pins %s", found, version)
+		return "", fmt.Errorf("the embedded harness-har reports %s, but this plugin pins %s", found, version)
 	}
 	return dest, nil
 }
@@ -164,13 +174,13 @@ func installEmbeddedHC(version string) (string, error) {
 // version are skipped with a debug log rather than failing the step.
 func resolveFromCandidates(candidates []string, want string) (string, bool) {
 	for _, candidate := range candidates {
-		version, err := hcBinaryVersion(candidate)
+		version, err := cliBinaryVersion(candidate)
 		if err != nil {
-			logrus.Debugf("skipping harness-cli candidate %s: %v", candidate, err)
+			logrus.Debugf("skipping harness-har candidate %s: %v", candidate, err)
 			continue
 		}
 		if version != want {
-			logrus.Debugf("skipping harness-cli candidate %s: version %s, want %s", candidate, version, want)
+			logrus.Debugf("skipping harness-har candidate %s: version %s, want %s", candidate, version, want)
 			continue
 		}
 		return candidate, true
@@ -178,18 +188,18 @@ func resolveFromCandidates(candidates []string, want string) (string, bool) {
 	return "", false
 }
 
-// hcCandidatePaths lists locations to check before unpacking our own copy,
+// cliCandidatePaths lists locations to check before unpacking our own copy,
 // cheapest first: the conventional install location, then our version-keyed
-// cache, then whatever PATH offers. Anything found here still has to report the
-// pinned version to be used.
-func hcCandidatePaths() []string {
-	candidates := []string{bakedHCPath()}
+// cache, then whatever PATH offers. Anything found here still has to report
+// the pinned version to be used.
+func cliCandidatePaths() []string {
+	candidates := []string{bakedCLIPath()}
 
-	if cached, err := hcCacheBinPath(pinnedHCVersion); err == nil {
+	if cached, err := cliCacheBinPath(pinnedCLIVersion); err == nil {
 		candidates = append(candidates, cached)
 	}
 
-	if found, err := exec.LookPath(hcBinaryName()); err == nil {
+	if found, err := exec.LookPath(cliBinaryName()); err == nil {
 		if abs, err := filepath.Abs(found); err == nil {
 			candidates = append(candidates, abs)
 		}
@@ -198,25 +208,25 @@ func hcCandidatePaths() []string {
 	return dedupe(candidates)
 }
 
-// bakedHCPath is the conventional hc install location. Our own images no longer
-// install one there, but self-managed installations and older images do.
-func bakedHCPath() string {
+// bakedCLIPath is the conventional harness-har install location for
+// self-managed images that provision the CLI themselves.
+func bakedCLIPath() string {
 	if runtime.GOOS == "windows" {
-		return "C:/bin/hc.exe"
+		return "C:/bin/harness-har.exe"
 	}
-	return "/usr/local/bin/hc"
+	return "/usr/local/bin/harness-har"
 }
 
-func hcBinaryName() string {
+func cliBinaryName() string {
 	if runtime.GOOS == "windows" {
-		return "hc.exe"
+		return "harness-har.exe"
 	}
-	return "hc"
+	return "harness-har"
 }
 
-// hcCacheBinPath is where we keep downloaded binaries. The version is part of
+// cliCacheBinPath is where we keep downloaded binaries. The version is part of
 // the path, so a cache hit cannot be the wrong version.
-func hcCacheBinPath(version string) (string, error) {
+func cliCacheBinPath(version string) (string, error) {
 	root, err := os.UserCacheDir()
 	if err != nil {
 		root = os.TempDir()
@@ -224,13 +234,13 @@ func hcCacheBinPath(version string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("no cache directory available")
 	}
-	return filepath.Join(root, "harness", "hc", version, hcBinaryName()), nil
+	return filepath.Join(root, "harness", "harness-har", version, cliBinaryName()), nil
 }
 
-var hcVersionPattern = regexp.MustCompile(`version\s+v?(\d+\.\d+\.\d+[^\s]*)`)
+var cliVersionPattern = regexp.MustCompile(`version\s+v?(\d+\.\d+\.\d+[^\s]*)`)
 
-// hcBinaryVersion runs `<path> version` and extracts the semantic version.
-func hcBinaryVersion(path string) (string, error) {
+// cliBinaryVersion runs `<path> version` and extracts the semantic version.
+func cliBinaryVersion(path string) (string, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return "", err
@@ -239,7 +249,7 @@ func hcBinaryVersion(path string) (string, error) {
 		return "", fmt.Errorf("%s is a directory", path)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), hcVersionTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cliVersionTimeout)
 	defer cancel()
 
 	out, err := exec.CommandContext(ctx, path, "version").CombinedOutput()
@@ -247,67 +257,54 @@ func hcBinaryVersion(path string) (string, error) {
 		return "", fmt.Errorf("%s version failed: %w", path, err)
 	}
 
-	version, err := parseHCVersion(string(out))
+	version, err := parseCLIVersion(string(out))
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", path, err)
 	}
 	return version, nil
 }
 
-// parseHCVersion extracts the version from `hc version` output, which looks
-// like "hc version 1.3.44\nBuilt with go1.25.0".
-func parseHCVersion(out string) (string, error) {
-	match := hcVersionPattern.FindStringSubmatch(out)
+// parseCLIVersion extracts the version from `harness-har version` output,
+// which looks like "harness-har version 1.2.0 (202611041200Z)".
+func parseCLIVersion(out string) (string, error) {
+	match := cliVersionPattern.FindStringSubmatch(out)
 	if match == nil {
-		return "", fmt.Errorf("could not parse harness-cli version from %q", strings.TrimSpace(out))
+		return "", fmt.Errorf("could not parse harness-har version from %q", strings.TrimSpace(out))
 	}
 	return match[1], nil
 }
 
-// hcArchiveName maps a Go platform onto a harness-cli release asset name.
-// harness-cli names its macOS archives "mac-os" and uses x86_64/i386 rather
-// than the Go spellings, so this mapping cannot be a simple interpolation.
-func hcArchiveName(version, goos, goarch string) (string, error) {
-	var osPart string
+// cliArchiveName maps a Go platform onto a harness-har release asset name.
+// Windows builds ship as zip archives, every other platform as tar.gz.
+func cliArchiveName(version, goos, goarch string) (string, error) {
 	switch goos {
-	case "linux":
-		osPart = "linux"
-	case "darwin":
-		osPart = "mac-os"
-	case "windows":
-		osPart = "windows"
+	case "linux", "darwin", "windows":
 	default:
-		return "", fmt.Errorf("harness-cli does not publish builds for %s", goos)
+		return "", fmt.Errorf("harness-har is not published for %s", goos)
 	}
-
-	var archPart string
 	switch goarch {
-	case "amd64":
-		archPart = "x86_64"
-	case "arm64":
-		archPart = "arm64"
-	case "386":
-		if goos != "windows" {
-			return "", fmt.Errorf("harness-cli does not publish builds for %s/%s", goos, goarch)
-		}
-		archPart = "i386"
+	case "amd64", "arm64":
 	default:
-		return "", fmt.Errorf("harness-cli does not publish builds for %s/%s", goos, goarch)
+		return "", fmt.Errorf("harness-har is not published for %s/%s", goos, goarch)
 	}
 
-	return fmt.Sprintf("hc_%s_%s_%s.tar.gz", version, osPart, archPart), nil
+	ext := "tar.gz"
+	if goos == "windows" {
+		ext = "zip"
+	}
+	return fmt.Sprintf("harness-plugin-har_%s_%s_%s.%s", version, goos, goarch, ext), nil
 }
 
-// downloadHC fetches the pinned release archive and installs the binary into
+// downloadCLI fetches the pinned release archive and installs the binary into
 // the cache directory, returning its path.
-func downloadHC(version string) (string, error) {
-	archive, err := hcArchiveName(version, runtime.GOOS, runtime.GOARCH)
+func downloadCLI(version string) (string, error) {
+	archive, err := cliArchiveName(version, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return "", err
 	}
-	url := fmt.Sprintf(hcReleaseURLTemplate, version, archive)
+	url := fmt.Sprintf(cliReleaseURLTemplate, version, archive)
 
-	dest, err := hcCacheBinPath(version)
+	dest, err := cliCacheBinPath(version)
 	if err != nil {
 		return "", err
 	}
@@ -315,7 +312,7 @@ func downloadHC(version string) (string, error) {
 		return "", fmt.Errorf("could not create cache directory: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), hcDownloadTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cliDownloadTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -332,23 +329,35 @@ func downloadHC(version string) (string, error) {
 		return "", fmt.Errorf("could not download %s: unexpected status %s", url, resp.Status)
 	}
 
-	if err := extractHCBinary(resp.Body, dest); err != nil {
-		return "", fmt.Errorf("could not extract harness-cli from %s: %w", url, err)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("could not download %s: %w", url, err)
+	}
+	if err := extractCLIBinary(data, dest); err != nil {
+		return "", fmt.Errorf("could not extract harness-har from %s: %w", url, err)
 	}
 	return dest, nil
 }
 
-// extractHCBinary pulls the hc executable out of a .tar.gz stream and writes it
-// to dest. The write goes to a temporary file first and is then renamed, so a
-// concurrent step never observes a partially written binary.
-func extractHCBinary(r io.Reader, dest string) error {
-	gz, err := gzip.NewReader(r)
+// extractCLIBinary pulls the harness-har executable out of a release archive
+// (zip on Windows, tar.gz elsewhere) and writes it to dest. The write goes to a
+// temporary file first and is then renamed, so a concurrent step never
+// observes a partially written binary.
+func extractCLIBinary(archive []byte, dest string) error {
+	if bytes.HasPrefix(archive, []byte("PK\x03\x04")) {
+		return extractFromZip(archive, dest)
+	}
+	return extractFromTarGz(archive, dest)
+}
+
+func extractFromTarGz(archive []byte, dest string) error {
+	gz, err := gzip.NewReader(bytes.NewReader(archive))
 	if err != nil {
 		return err
 	}
 	defer gz.Close()
 
-	wanted := hcBinaryName()
+	wanted := cliBinaryName()
 	tr := tar.NewReader(gz)
 	for {
 		header, err := tr.Next()
@@ -365,8 +374,29 @@ func extractHCBinary(r io.Reader, dest string) error {
 	}
 }
 
+func extractFromZip(archive []byte, dest string) error {
+	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		return err
+	}
+
+	wanted := cliBinaryName()
+	for _, file := range zr.File {
+		if file.FileInfo().IsDir() || filepath.Base(file.Name) != wanted {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+		return writeExecutable(rc, dest)
+	}
+	return fmt.Errorf("archive does not contain %s", wanted)
+}
+
 func writeExecutable(r io.Reader, dest string) error {
-	tmp, err := os.CreateTemp(filepath.Dir(dest), ".hc-*")
+	tmp, err := os.CreateTemp(filepath.Dir(dest), ".harness-har-*")
 	if err != nil {
 		return err
 	}

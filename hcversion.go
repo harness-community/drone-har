@@ -10,10 +10,10 @@ import (
 	_ "embed"
 )
 
-// hcVersionFile holds the contents of the repo-root HC_VERSION file, which is
-// the single source of truth for the pinned harness-cli version. The container
+// cliVersionFile holds the contents of the repo-root HC_VERSION file, which is
+// the single source of truth for the pinned harness-har version. The container
 // images read the same file at build time, so an image and the plugin binary
-// built from a given commit always agree on which hc they expect.
+// built from a given commit always agree on which CLI they expect.
 //
 //go:embed HC_VERSION
-var hcVersionFile string
+var cliVersionFile string

@@ -65,7 +65,7 @@ func (h *ComposerHandler) pushSingleFile(config Config, filePath, artifactName s
 		return err
 	}
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Composer artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Composer artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Composer packages from the registry

@@ -70,7 +70,7 @@ func (h *GoHandler) pushSingleFile(config Config, filePath, artifactName string)
 
 	cmdArgs = append(cmdArgs, "--version", config.Version)
 
-	return executeCommand(cmdArgs, fmt.Sprintf("push Go artifact '%s' to registry '%s'", artifactName, config.Registry))
+	return executeCommand(config, cmdArgs, fmt.Sprintf("push Go artifact '%s' to registry '%s'", artifactName, config.Registry))
 }
 
 // Pull downloads Go packages from the registry

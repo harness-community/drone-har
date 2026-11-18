@@ -18,8 +18,8 @@ import (
 func main() {
 	logrus.SetFormatter(new(formatter))
 
-	// Tell the package handlers which harness-cli version this build expects.
-	packages.SetPinnedHCVersion(hcVersionFile)
+	// Tell the package handlers which harness-har version this build expects.
+	packages.SetPinnedCLIVersion(cliVersionFile)
 
 	var args plugin.Args
 	if err := envconfig.Process("", &args); err != nil {
